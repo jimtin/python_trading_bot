@@ -31,8 +31,16 @@ if __name__ == '__main__':
     # account_details = get_account_details.get_account_details(project_settings=project_settings)
     candlestick_data = get_candlesticks.get_candlestick_data("BTC-USDC", "D1")
     # Check Bullish Engulfing
-    bullish_engulfing_check = bullish_engulfing.calc_bullish_engulfing(candlestick_data)
+    bullish_engulfing_check = bullish_engulfing.calc_bullish_engulfing(
+        dataframe=candlestick_data,
+        exchange="coinbase",
+        project_settings=project_settings
+    )
     print(f"Bullish Engulfing Check: {bullish_engulfing_check}")
-    bearish_engulfing_check = bearish_engulfing.calc_bearish_engulfing(candlestick_data)
+    bearish_engulfing_check = bearish_engulfing.calc_bearish_engulfing(
+        dataframe=candlestick_data,
+        exchange="coinbase",
+        project_settings=project_settings
+    )
     print(f"Bearish Engulfing Check: {bearish_engulfing_check}")
 

@@ -1,11 +1,14 @@
 from indicators import ema_calculator
+from strategies import engulfing_candle_strategy
 
 
 # Function to calculate bullish engulfing pattern
-def calc_bullish_engulfing(dataframe):
+def calc_bullish_engulfing(dataframe, exchange, project_settings):
     """
     Function to calculate if a bullish engulfing candle has been detected
     :param dataframe: Pandas dataframe of candle data
+    :param exchange: string
+    :param project_settings: JSON data object
     :return: Bool
     """
     # Extract the most recent candle
@@ -34,9 +37,17 @@ def calc_bullish_engulfing(dataframe):
                     # Extract the second most recent candle from the new dataframe
                     ema_count = len(ema_20) - 2
                     ema_second_most_recent = ema_20.loc[ema_count]
-                    print(ema_second_most_recent)
                     # Compare the EMA and Red Low
                     if ema_second_most_recent['close'] < ema_second_most_recent['ema_20']:
+                        strategy = engulfing_candle_strategy.engulfing_candle_strategy(
+                            high=most_recent_candle['high'],
+                            low=most_recent_candle['low'],
+                            symbol=most_recent_candle['symbol'],
+                            timeframe=most_recent_candle['timeframe'],
+                            exchange=exchange,
+                            alert_type="bullish_engulfing",
+                            project_settings=project_settings
+                        )
                         return True
     return False
 

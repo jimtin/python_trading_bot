@@ -1,11 +1,14 @@
 from indicators import ema_calculator
+from strategies import engulfing_candle_strategy
 
 
 # Function to calculate bearish engulfing pattern
-def calc_bearish_engulfing(dataframe):
+def calc_bearish_engulfing(dataframe, exchange, project_settings):
     """
     Function to detect a bearish engulfing pattern
     :param dataframe: Pandas dataframe of candle data
+    :param exchange: string
+    :param project_settings: JSON data object
     :return: Bool
     """
 
@@ -37,5 +40,14 @@ def calc_bearish_engulfing(dataframe):
                     ema_second_most_recent = ema_20.loc[ema_count]
                     # Compare 20-EMA and Green Open
                     if ema_second_most_recent['open'] > ema_second_most_recent['ema_20']:
+                        strategy = engulfing_candle_strategy.engulfing_candle_strategy(
+                            high=most_recent_candle['high'],
+                            low=most_recent_candle['low'],
+                            symbol=most_recent_candle['symbol'],
+                            timeframe=most_recent_candle['timeframe'],
+                            exchange=exchange,
+                            alert_type="bearish_engulfing",
+                            project_settings=project_settings
+                        )
                         return True
     return False
