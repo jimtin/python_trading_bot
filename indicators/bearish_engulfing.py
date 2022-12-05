@@ -40,6 +40,7 @@ def calc_bearish_engulfing(dataframe, exchange, project_settings):
                     ema_second_most_recent = ema_20.loc[ema_count]
                     # Compare 20-EMA and Green Open
                     if ema_second_most_recent['open'] > ema_second_most_recent['ema_20']:
+                        # Use this function if you're planning on sending it to an alert generator
                         strategy = engulfing_candle_strategy.engulfing_candle_strategy(
                             high=most_recent_candle['high'],
                             low=most_recent_candle['low'],

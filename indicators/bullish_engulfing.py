@@ -39,6 +39,7 @@ def calc_bullish_engulfing(dataframe, exchange, project_settings):
                     ema_second_most_recent = ema_20.loc[ema_count]
                     # Compare the EMA and Red Low
                     if ema_second_most_recent['close'] < ema_second_most_recent['ema_20']:
+                        # If plugging into a strategy such as the Engulfing Candle Strategy, send to alerting mechanism
                         strategy = engulfing_candle_strategy.engulfing_candle_strategy(
                             high=most_recent_candle['high'],
                             low=most_recent_candle['low'],
@@ -48,6 +49,7 @@ def calc_bullish_engulfing(dataframe, exchange, project_settings):
                             alert_type="bullish_engulfing",
                             project_settings=project_settings
                         )
+                        # Return true
                         return True
     return False
 

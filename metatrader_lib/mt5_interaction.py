@@ -3,6 +3,14 @@ import MetaTrader5
 
 # Function to start Meta Trader 5 (MT5)
 def start_mt5(username, password, server, path):
+    """
+    Initializes and logs into MT5
+    :param username: 8 digit integer
+    :param password: string
+    :param server: string
+    :param path: string
+    :return: True if successful, Error if not
+    """
     # Ensure that all variables are the correct type
     uname = int(username) # Username must be an int
     pword = str(password) # Password must be a string
@@ -104,3 +112,81 @@ def query_historic_data(symbol, timeframe, number_of_candles):
     # Retrieve data from MT5
     rates = MetaTrader5.copy_rates_from_pos(symbol, mt5_timeframe, 1, number_of_candles)
     return rates
+
+
+# Function to place a trade on MT5
+def place_order(order_type, symbol, volume, price, stop_loss, take_profit, comment):
+    # If order type SELL_STOP
+    if order_type == "SELL_STOP":
+        order_type = MetaTrader5.ORDER_TYPE_SELL_STOP
+    elif order_type == "BUY_STOP":
+        order_type = MetaTrader5.ORDER_TYPE_BUY_STOP
+    # Create the request
+    request = {
+        "action": MetaTrader5.TRADE_ACTION_PENDING,
+        "symbol": symbol,
+        "volume": volume,
+        "type": order_type,
+        "price": round(price, 3),
+        "sl": round(stop_loss, 3),
+        "tp": round(take_profit, 3),
+        "type_filling": MetaTrader5.ORDER_FILLING_RETURN,
+        "type_time": MetaTrader5.ORDER_TIME_GTC,
+        "comment": comment
+    }
+    # Send the order to MT5
+    order_result = MetaTrader5.order_send(request)
+    # Notify based on return outcomes
+    if order_result[0] == 10009:
+        print(f"Order for {symbol} successful")
+    else:
+        print(f"Error placing order. ErrorCode {order_result[0]}, Error Details: {order_result}")
+    return order_result
+
+
+# Function to cancel an order
+def cancel_order(order_number):
+    # Create the request
+    request = {
+        "action": MetaTrader5.TRADE_ACTION_REMOVE,
+        "order": order_number,
+        "comment": "Order Removed"
+    }
+    # Send order to MT5
+    order_result = MetaTrader5.order_send(request)
+    return order_result
+
+
+# Function to modify an open position
+def modify_position(order_number, symbol, new_stop_loss, new_take_profit):
+    # Create the request
+    request = {
+        "action": MetaTrader5.TRADE_ACTION_SLTP,
+        "symbol": symbol,
+        "sl": new_stop_loss,
+        "tp": new_take_profit,
+        "position": order_number
+    }
+    # Send order to MT5
+    order_result = MetaTrader5.order_send(request)
+    if order_result[0] == 10009:
+        return True
+    else:
+        return False
+
+
+# Function to retrieve all open orders from MT5
+def get_open_orders():
+    orders = MetaTrader5.orders_get()
+    order_array = []
+    for order in orders:
+        order_array.append(order[0])
+    return order_array
+
+
+# Function to retrieve all open positions
+def get_open_positions():
+    # Get position objects
+    positions = MetaTrader5.positions_get()
+    # Return position objects
+    return positions
