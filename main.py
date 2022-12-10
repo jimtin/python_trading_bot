@@ -67,5 +67,24 @@ if __name__ == '__main__':
     project_settings = get_project_settings(import_filepath=import_filepath)
     # Check Exchanges
     check_exchanges(project_settings=project_settings)
+    # Place an order
+    """
+    mt5_interaction.place_order(
+        order_type="BUY",
+        symbol="BTCUSD.a",
+        volume=0.1,
+        stop_loss=17130.00,
+        take_profit=17200.00,
+        comment="Test Trade"
+    )
+    """
+    mt5_interaction.close_position(
+        order_number=12345678, # Replace with your order number
+        symbol="BTCUSD.a", # Must match your place order symbol
+        volume=0.1, # Volume must be <= purchase volume
+        order_type="SELL", # Must be the opposite of the purchase
+        price=17135.10, # Must be <= to current price
+        comment="Test Trade"
+    )
 
 
