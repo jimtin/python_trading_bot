@@ -316,3 +316,18 @@ def query_historic_data(symbol, timeframe, number_of_candles):
     # Retrieve data from MT5
     rates = MetaTrader5.copy_rates_from_pos(symbol, mt5_timeframe, 1, number_of_candles)
     return rates
+
+
+# Function to retrieve latest tick for a symbol
+def retrieve_latest_tick(symbol):
+    """
+    Function to retrieve the latest tick for a symbol
+    :param symbol: String
+    :return: Dictionary object
+    """
+    # Retrieve the tick information
+    tick = MetaTrader5.symbol_info_tick(symbol)._asdict()
+    spread = tick['ask'] - tick['bid']
+    tick['spread'] = spread
+    return tick
+

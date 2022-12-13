@@ -1,0 +1,20 @@
+{
+    "live_trade_table": {
+        "strategy": "",
+        "exchange": "",
+        "trade_type": "",
+        "symbol": "",
+        "volume": "",
+        "stop_loss": "",
+        "take_profit": "",
+        "comment": "",
+        "status": "",
+        "price": ""
+    },
+    "paper_trade_table": {
+
+    },
+    "backtest_trade_table": {
+
+    }
+}

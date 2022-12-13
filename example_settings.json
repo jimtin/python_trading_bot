@@ -31,5 +31,12 @@
         },
         "Testing": "True",
         "symbols": ["BTCUSDT"]
+    },
+    "postgres": {
+        "host": "your_hostname",
+        "database": "your_database",
+        "user": "your_username",
+        "password": "your_secret_password",
+        "port": "port_your_db_listens_on"
     }
 }
