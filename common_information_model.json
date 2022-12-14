@@ -1,20 +1,28 @@
 {
     "live_trade_table": {
-        "strategy": "",
-        "exchange": "",
-        "trade_type": "",
-        "symbol": "",
-        "volume": "",
-        "stop_loss": "",
-        "take_profit": "",
-        "comment": "",
-        "status": "",
-        "price": ""
+        "strategy": "String defining strategy",
+        "exchange": "String defining the exchange being used",
+        "trade_type": "String of the type of trade: BUY / SELL / BUY_STOP / SELL_STOP",
+        "trade_stage": "Stage of trade: order / position",
+        "symbol": "String of the symbol",
+        "volume": "Float of the volume",
+        "stop_loss": "Float of the stop loss value",
+        "take_profit": "Float of the take profit value",
+        "comment": "String of the comment",
+        "status": "String of the status: CANCELLED / PLACED ",
+        "price": "Float of the executed price"
     },
     "paper_trade_table": {
-
-    },
-    "backtest_trade_table": {
-
+        "strategy": "String defining strategy",
+        "exchange": "String defining the exchange being used",
+        "trade_type": "String of the type of trade: BUY / SELL / BUY_STOP / SELL_STOP",
+        "trade_stage": "Stage of trade: order / position",
+        "symbol": "String of the symbol",
+        "volume": "Float of the volume",
+        "stop_loss": "Float of the stop loss value",
+        "take_profit": "Float of the take profit value",
+        "comment": "String of the comment",
+        "status": "String of the status: CANCELLED / PLACED ",
+        "price": "Float of the executed price"
     }
 }

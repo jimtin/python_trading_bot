@@ -66,8 +66,21 @@ def check_exchanges(project_settings):
 if __name__ == '__main__':
     # Import project settings
     project_settings = get_project_settings(import_filepath=import_filepath)
-    # Retreive Tick Data
-    sql_connect = sql_interaction.postgres_connect(project_settings=project_settings)
-    print(sql_connect)
+    # Define a fake trade row
+    trade_row = {
+        "strategy": "TestStrategy",
+        "exchange": "MT5",
+        "trade_type": "BUY_STOP",
+        "trade_stage": "ORDER",
+        "symbol": "BTCUSD",
+        "volume": 1.0,
+        "stop_loss": 17000.50,
+        "take_profit": 25000.30,
+        "price": 18501.21,
+        "comment": "Test Trade, ignore",
+        "status": "SUCCESS"
+    }
+    # Add a row to paper_trade_table
+    sql_interaction.insert_trade_action("paper_trade_table", trade_row, project_settings)
 
 
