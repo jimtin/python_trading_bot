@@ -86,7 +86,8 @@ def create_trade_table(table_name, project_settings):
                     f"take_profit FLOAT4 NOT NULL," \
                     f"price FLOAT4 NOT NULL," \
                     f"comment VARCHAR(250) NOT NULL," \
-                    f"status VARCHAR(100) NOT NULL"
+                    f"status VARCHAR(100) NOT NULL," \
+                    f"order_id VARCHAR(100) NOT NULL"
     # Pass to Create Table function
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings)
 
@@ -105,7 +106,7 @@ def insert_trade_action(table_name, trade_information, project_settings):
         ti = trade_information
         # Construct the SQL Query
         sql_query = f"INSERT INTO {table_name} (strategy, exchange, trade_type, trade_stage, symbol, volume, stop_loss, " \
-                    f"take_profit, price, comment, status) VALUES (" \
+                    f"take_profit, price, comment, status, order_id) VALUES (" \
                     f"'{ti['strategy']}'," \
                     f"'{ti['exchange']}'," \
                     f"'{ti['trade_type']}'," \
@@ -116,7 +117,8 @@ def insert_trade_action(table_name, trade_information, project_settings):
                     f"{ti['take_profit']}," \
                     f"{ti['price']}," \
                     f"'{ti['comment']}'," \
-                    f"'{ti['status']}'" \
+                    f"'{ti['status']}'," \
+                    f"'{ti['order_id']}'" \
                     f")"
         # Execute the query
         return sql_execute(sql_query=sql_query, project_settings=project_settings)
@@ -124,3 +126,32 @@ def insert_trade_action(table_name, trade_information, project_settings):
         # Return an exception
         return Exception # Custom Error Handling Coming Soon
 
+
+# Function to insert a live trade action into SQL database
+def insert_live_trade_action(trade_information, project_settings):
+    """
+    Function to insert a row of trade data into the table live_trade_table
+    :param trade_information: Dictionary object of trade
+    :param project_settings: Dictionary object of project details
+    :return: Bool
+    """
+    return insert_trade_action(
+        table_name="live_trade_table",
+        trade_information=trade_information,
+        project_settings=project_settings
+    )
+
+
+# Function to insert a paper trade action into SQL database
+def insert_paper_trade_action(trade_information, project_settings):
+    """
+    Function to insert a row of trade data into the table paper_trade_table
+    :param trade_information: Dictionary object of trade details
+    :param project_settings: Dictionary object of project details
+    :return: Bool
+    """
+    return insert_trade_action(
+        table_name="paper_trade_table",
+        trade_information=trade_information,
+        project_settings=project_settings
+    )

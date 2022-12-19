@@ -2,6 +2,7 @@ import json
 import os
 from sql_lib import sql_interaction
 from metatrader_lib import mt5_interaction
+from capture_lib import trade_capture
 
 
 # Variable for the location of settings.json
@@ -60,27 +61,41 @@ def check_exchanges(project_settings):
     return True
 
 
-
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Import project settings
     project_settings = get_project_settings(import_filepath=import_filepath)
-    # Define a fake trade row
-    trade_row = {
-        "strategy": "TestStrategy",
-        "exchange": "MT5",
-        "trade_type": "BUY_STOP",
-        "trade_stage": "ORDER",
-        "symbol": "BTCUSD",
-        "volume": 1.0,
-        "stop_loss": 17000.50,
-        "take_profit": 25000.30,
-        "price": 18501.21,
-        "comment": "Test Trade, ignore",
-        "status": "SUCCESS"
-    }
-    # Add a row to paper_trade_table
-    sql_interaction.insert_trade_action("paper_trade_table", trade_row, project_settings)
+    # Check exchanges
+    check_exchanges(project_settings)
+    # Create a BUY order
+    """
+    trade_capture.capture_order(
+        order_type="CANCEL",
+        strategy="TestStrategy",
+        exchange="mt5",
+        symbol="BTCUSD.a",
+        volume=0.1,
+        stop_loss=16000.00,
+        take_profit=17000.00,
+        comment="TestOrder",
+        paper=True,
+        project_settings=project_settings,
+        #price=16880.00
+        order_number=311891382
+    )
+    """
+    trade_capture.capture_position_update(
+        trade_type="take_profit_update",
+        order_number=311875716,
+        symbol="BTCUSD.a",
+        strategy="TestStrategy",
+        exchange="mt5",
+        project_settings=project_settings,
+        comment="Test Strategy",
+        new_stop_loss=16000.00,
+        new_take_profit=17005.00,
+        price=0.00,
+        volume=0.00,
+    )
 
 

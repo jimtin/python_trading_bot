@@ -83,10 +83,6 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
     :param price: String or Float, optional
     :return: Trade outcome or syntax error
     """
-    # Convert volume, price, stop_loss, and take_profit to float
-    volume = float(volume)
-    stop_loss = float(stop_loss)
-    take_profit = float(take_profit)
 
     # Set up the place order request
     request = {
@@ -127,22 +123,24 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
         # Notify based on return outcomes
         if order_result[0] == 10009:
             # Print result
-            print(f"Order for {symbol} successful")
+            # print(f"Order for {symbol} successful") # Enable if error checking order_result
+            return order_result[2]
         elif order_result[0] == 10027:
             # Turn off autotrading
             print(f"Turn off Algo Trading on MT5 Terminal")
+            return Exception # Generic exception
         else:
             # Print result
             print(f"Error placing order. ErrorCode {order_result[0]}, Error Details: {order_result}")
-        return order_result
+            return Exception # Generic exception
+
     else:
         # Check the order
         result = MetaTrader5.order_check(request)
-        print(result)
         if result[0] == 0:
-            print("Balance Check Successful")
+            # print("Balance Check Successful") # Enable to error check Balance Check
             # If order check is successful, place the order. Little bit of recursion for fun.
-            order_outcome = place_order(
+            place_order(
                 order_type=order_type,
                 symbol=symbol,
                 volume=volume,
@@ -171,7 +169,11 @@ def cancel_order(order_number):
     }
     # Send order to MT5
     order_result = MetaTrader5.order_send(request)
-    return order_result
+    if order_result[0] == 10009:
+        return True
+    else:
+        print(f"Error cancelling order. Details: {order_result}")
+        return NotImplementedError # Generic error handling
 
 
 # Function to modify an open position
@@ -197,7 +199,7 @@ def modify_position(order_number, symbol, new_stop_loss, new_take_profit):
     if order_result[0] == 10009:
         return True
     else:
-        return False
+        return Exception # Generic Error
 
 
 # Function to retrieve all open orders from MT5
@@ -254,11 +256,10 @@ def close_position(order_number, symbol, volume, order_type, price, comment):
     # Place the order
     result = MetaTrader5.order_send(request)
     if result[0] == 10009:
-        print("Order Closed")
         return True
     else:
         print(result)
-        return False
+        return Exception
 
 
 # Function to convert a timeframe string in MetaTrader 5 friendly format

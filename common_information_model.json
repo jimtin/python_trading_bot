@@ -10,7 +10,8 @@
         "take_profit": "Float of the take profit value",
         "comment": "String of the comment",
         "status": "String of the status: CANCELLED / PLACED ",
-        "price": "Float of the executed price"
+        "price": "Float of the executed price",
+        "order_id": "String of a unique identifier for the order"
     },
     "paper_trade_table": {
         "strategy": "String defining strategy",
@@ -23,6 +24,7 @@
         "take_profit": "Float of the take profit value",
         "comment": "String of the comment",
         "status": "String of the status: CANCELLED / PLACED ",
-        "price": "Float of the executed price"
+        "price": "Float of the executed price",
+        "order_id": "String of a unique identifier for the order"
     }
 }
