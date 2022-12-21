@@ -197,7 +197,156 @@ def test_place_order_sell_stop():
     assert outcome == None
 
 
-### Helper function
+# Test that canceling a non-existing order throws an error
+def test_cancel_order_incorrect():
+    order_number = 12345678
+    with pytest.raises(exceptions.MetaTraderCancelOrderError) as e:
+        mt5_interaction.cancel_order(order_number)
+        assert e.type == exceptions.MetaTraderCancelOrderError
+
+
+# Test the ability to cancel an order
+def test_cancel_order():
+    # Retrieve a list of orders
+    orders = mt5_interaction.get_open_orders()
+    # Iterate through and cancel
+    for order in orders:
+        outcome = mt5_interaction.cancel_order(order)
+        assert outcome == True
+
+
+# Test the ability to modify an open positions stop loss
+def test_modify_position_new_stop_loss():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    # Modify the stop loss of positions with comment "TestTrade"
+    for position in positions:
+        if position[17] == "TestTrade":
+            # Add $100 to stop loss, then modify
+            new_stop_loss = position[11] + 100
+            outcome = mt5_interaction.modify_position(
+                order_number=position[0],
+                symbol=position[16],
+                new_stop_loss=new_stop_loss,
+                new_take_profit=position[12]
+            )
+            assert outcome == True
+
+
+# Test ability to modify an open positions take profit
+def test_modify_position_new_take_profit():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    # Modify the take profit of positions with the comment "TestTrade"
+    for position in positions:
+        if position[17] == "TestTrade":
+            # Add $100 to take profit, then modify
+            new_take_profit = position[12] + 100
+            outcome = mt5_interaction.modify_position(
+                order_number=position[0],
+                symbol=position[16],
+                new_stop_loss=position[11],
+                new_take_profit=new_take_profit
+            )
+            assert outcome == True
+
+
+# Test ability to modify both take profit and stop loss simultaneously
+def test_modify_position():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    # Modify the both take profit and stop loss positions with the comment "TestTrade"
+    for position in positions:
+        if position[17] == "TestTrade":
+            # Subtract $100 to take profit, then modify
+            new_take_profit = position[12] - 100
+            new_stop_loss = position[11] - 100
+            outcome = mt5_interaction.modify_position(
+                order_number=position[0],
+                symbol=position[16],
+                new_stop_loss=new_stop_loss,
+                new_take_profit=new_take_profit
+            )
+            assert outcome == True
+
+# Test Modify Position throws an error
+def test_modify_position_error():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "TestTrade":
+            with pytest.raises(exceptions.MetaTraderModifyPositionError) as e:
+                mt5_interaction.modify_position(
+                    order_number=12345678,
+                    symbol=position[16],
+                    new_stop_loss=position[11],
+                    new_take_profit=position[12]
+                )
+                assert e.type == exceptions.MetaTraderCancelOrderError
+
+
+# Test function to close a position
+def test_close_position_syntax():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "TestTrade":
+            with pytest.raises(SyntaxError) as e:
+                mt5_interaction.close_position(
+                    order_number=position[0],
+                    symbol=position[16],
+                    volume=position[9],
+                    order_type=position[5],
+                    price=position[13],
+                    comment="TestTrade"
+                )
+                assert e.type == SyntaxError
+
+
+# Test function to attempt to close a position with a bogus order_number
+def test_close_position_wrong_order_number():
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "TestTrade":
+            with pytest.raises(exceptions.MetaTraderClosePositionError) as e:
+                if position[5] == 0:
+                    order_type = "SELL"
+                elif position[5] == 1:
+                    order_type = "BUY"
+                mt5_interaction.close_position(
+                    order_number=12345678,
+                    symbol=position[16],
+                    volume=position[9],
+                    order_type=order_type,
+                    price=position[13],
+                    comment="TestTrade"
+                )
+
+
+def test_close_position():
+    # Retreive a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "TestTrade":
+            if position[5] == 0:
+                order_type = "SELL"
+            elif position[5] == 1:
+                order_type = "BUY"
+            outcome = mt5_interaction.close_position(
+                    order_number=position[0],
+                    symbol=position[16],
+                    volume=position[9],
+                    order_type=order_type,
+                    price=position[13],
+                    comment="TestTrade"
+                )
+            assert outcome == True
+
+
+
+
+### Helper functions
 def get_a_test_order():
     # Get the current BTCUSD.a price, Assume balance is not more than $100,000
     current_price = mt5_interaction.retrieve_latest_tick("BTCUSD.a")['ask']
