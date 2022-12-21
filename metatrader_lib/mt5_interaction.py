@@ -1,4 +1,5 @@
 import MetaTrader5
+import exceptions
 
 
 # Function to start Meta Trader 5 (MT5)
@@ -18,18 +19,25 @@ def start_mt5(username, password, server, path):
     filepath = str(path)  # Filepath must be a string
 
     # Attempt to start MT5
-    if MetaTrader5.initialize(login=uname, password=pword, server=trading_server, path=filepath):
-        # Login to MT5
-        if MetaTrader5.login(login=uname, password=pword, server=trading_server):
-            return True
-        else:
-            print("Login Fail")
-            quit()
-            return PermissionError
+    try:
+        metaTrader_init = MetaTrader5.initialize(login=uname, password=pword, server=trading_server, path=filepath)
+    except Exception as e:
+        print(f"Error initializing MetaTrader: {e}")
+        raise exceptions.MetaTraderInitializeError
+
+    # Attempt to login to MT5
+    if not metaTrader_init:
+        raise exceptions.MetaTraderInitializeError
     else:
-        print("MT5 Initialization Failed")
-        quit()
-        return ConnectionAbortedError
+        try:
+            metaTrader_login = MetaTrader5.login(login=uname, password=pword, server=trading_server)
+        except Exception as e:
+            print(f"Error loging in to MetaTrader: {e}")
+            raise exceptions.MetaTraderLoginError
+
+    # Return True if initialization and login are successful
+    if metaTrader_login:
+        return True
 
 
 # Function to initialize a symbol on MT5
@@ -53,18 +61,17 @@ def initialize_symbols(symbol_array):
         if provided_symbol in symbol_names:
             # If it exists, enable
             if MetaTrader5.symbol_select(provided_symbol, True):
-                # Print outcome to user. Custom Logging Not yet enabled
-                print(f"Symbol {provided_symbol} enabled")
+                pass
             else:
                 # Print the outcome to screen. Custom Logging/Error Handling not yet created
                 print(f"Error creating symbol {provided_symbol}. Symbol not enabled.")
                 # Return a generic value error. Custom Error Handling not yet created.
-                return ValueError
+                raise exceptions.MetaTraderSymbolUnableToBeEnabledError
         else:
             # Print the outcome to screen. Custom Logging/Error Handling not yet created
             print(f"Symbol {provided_symbol} does not exist in this MT5 implementation. Symbol not enabled.")
             # Return a generic syntax error. Custom Error Handling not yet enabled
-            return SyntaxError
+            raise exceptions.MetaTraderSymbolDoesNotExistError
     # Return true if all symbols enabled
     return True
 
@@ -98,13 +105,20 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
     if order_type == "SELL_STOP":
         request['type'] = MetaTrader5.ORDER_TYPE_SELL_STOP
         request['action'] = MetaTrader5.TRADE_ACTION_PENDING
-        request['price'] = round(price, 3)
-        request['type_filling'] = MetaTrader5.ORDER_FILLING_RETURN
+        if price <= 0:
+            raise exceptions.MetaTraderIncorrectStopPriceError
+        else:
+            request['price'] = round(price, 3)
+            request['type_filling'] = MetaTrader5.ORDER_FILLING_RETURN
     elif order_type == "BUY_STOP":
         request['type'] = MetaTrader5.ORDER_TYPE_BUY_STOP
-        request['price'] = round(price, 3)
         request['action'] = MetaTrader5.TRADE_ACTION_PENDING
-        request['type_filling'] = MetaTrader5.ORDER_FILLING_RETURN
+        if price <= 0:
+            raise exceptions.MetaTraderIncorrectStopPriceError
+        else:
+            request['price'] = round(price, 3)
+            request['type_filling'] = MetaTrader5.ORDER_FILLING_RETURN
+
     elif order_type == "SELL":
         request['type'] = MetaTrader5.ORDER_TYPE_SELL
         request['action'] = MetaTrader5.TRADE_ACTION_DEAL
@@ -115,7 +129,7 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
         request['type_filling'] = MetaTrader5.ORDER_FILLING_IOC
     else:
         print("Choose a valid order type from SELL_STOP, BUY_STOP, SELL, BUY")
-        return SyntaxError  # Generic error handling only
+        raise SyntaxError
 
     if direct is True:
         # Send the order to MT5
@@ -128,11 +142,11 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
         elif order_result[0] == 10027:
             # Turn off autotrading
             print(f"Turn off Algo Trading on MT5 Terminal")
-            return Exception # Generic exception
+            raise exceptions.MetaTraderAlgoTradingNotDisabledError
         else:
             # Print result
             print(f"Error placing order. ErrorCode {order_result[0]}, Error Details: {order_result}")
-            return Exception # Generic exception
+            raise exceptions.MetaTraderOrderPlacingError
 
     else:
         # Check the order
@@ -152,7 +166,7 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
             )
         else:
             print(f"Order unsucessful. Details: {result}")
-            return False
+            raise exceptions.MetaTraderOrderCheckError
 
 # Function to cancel an order
 def cancel_order(order_number):
@@ -173,7 +187,7 @@ def cancel_order(order_number):
         return True
     else:
         print(f"Error cancelling order. Details: {order_result}")
-        return NotImplementedError # Generic error handling
+        raise exceptions.MetaTraderCancelOrderError
 
 
 # Function to modify an open position
@@ -199,7 +213,8 @@ def modify_position(order_number, symbol, new_stop_loss, new_take_profit):
     if order_result[0] == 10009:
         return True
     else:
-        return Exception # Generic Error
+        print(f"Error modifying position. Details: {order_result}")
+        raise exceptions.MetaTraderModifyPositionError
 
 
 # Function to retrieve all open orders from MT5
@@ -251,15 +266,16 @@ def close_position(order_number, symbol, volume, order_type, price, comment):
     elif order_type == "BUY":
         request['type'] = MetaTrader5.ORDER_TYPE_BUY
     else:
-        return Exception
+        print(f"Incorrect syntax for position close {order_type}")
+        raise SyntaxError
 
     # Place the order
     result = MetaTrader5.order_send(request)
     if result[0] == 10009:
         return True
     else:
-        print(result)
-        return Exception
+        print(f"Error closing position. Details: {result}")
+        raise exceptions.MetaTraderClosePositionError
 
 
 # Function to convert a timeframe string in MetaTrader 5 friendly format
