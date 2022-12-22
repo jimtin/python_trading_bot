@@ -324,6 +324,7 @@ def test_close_position_wrong_order_number():
                 )
 
 
+# Test the close position function works
 def test_close_position():
     # Retreive a list of current positions
     positions = mt5_interaction.get_open_positions()
@@ -344,6 +345,54 @@ def test_close_position():
             assert outcome == True
 
 
+### Complex test
+def test_fractional_close():
+    # Step 1: Make a trade with a volume of 0.2
+    # Retrieve details for a test order
+    test_order = get_a_test_order()
+    # Update volume
+    test_order['correct_volume'] = 0.2
+    # Place a BUY order
+    buy_order = mt5_interaction.place_order(
+        order_type="BUY",
+        symbol="BTCUSD.a",
+        volume=test_order['correct_volume'],
+        stop_loss=test_order['buy_stop_loss'],
+        take_profit=test_order['buy_take_profit'],
+        comment="ComplexTestOrder"
+    )
+    # Retrieve a list of current positions
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "ComplexTestOrder":
+            # Get 50% of volume
+            volume = position[9] / 2
+            # Get price less 100
+            price = position[13] - 100
+            sell_order = mt5_interaction.close_position(
+                order_number=position[0],
+                symbol=position[16],
+                volume=volume,
+                order_type="SELL",
+                price=price,
+                comment="ComplexTestOrderSell"
+            )
+            assert sell_order == True
+
+    # Now fully close out the positions to complete
+    positions = mt5_interaction.get_open_positions()
+    for position in positions:
+        if position[17] == "ComplexTestOrder":
+            sell_order = mt5_interaction.close_position(
+                order_number=position[0],
+                symbol=position[16],
+                volume=position[9],
+                order_type="SELL",
+                price=position[13]-100,
+                comment="ComplexTestOrderSell"
+            )
+            assert sell_order == True
+
 
 
 ### Helper functions
@@ -351,7 +400,7 @@ def get_a_test_order():
     # Get the current BTCUSD.a price, Assume balance is not more than $100,000
     current_price = mt5_interaction.retrieve_latest_tick("BTCUSD.a")['ask']
     return_object = {
-        "current_price ": current_price,
+        "current_price": current_price,
         "correct_buy": current_price,
         "incorrect_buy": current_price - 1000,
         "buy_stop_loss": current_price - 2000,
