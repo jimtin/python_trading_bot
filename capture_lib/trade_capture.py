@@ -47,16 +47,16 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
     if order_type == "BUY_STOP" or order_type == "SELL_STOP":
         if volume <= 0:
             print(f"Volume must be greater than 0 for an order type of {order_type}")
-            return ValueError # Generic Error Handling Only
+            raise SyntaxError # Use Pythons built in error for incorrect syntax
         if take_profit <= 0:
             print(f"Take Profit must be greater than 0 for an order type of {order_type}")
-            return ValueError  # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         if stop_loss <= 0:
             print(f"Stop Loss must be greater than 0 for an order type of {order_type}")
-            return ValueError  # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         if price == None:
             print(f"Price cannot be NONE on order_type {order_type}")
-            return ValueError # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         else:
             # Format price correctly
             price = float(price)
@@ -67,16 +67,16 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
     if order_type == "BUY" or order_type == "SELL":
         if volume <= 0:
             print(f"Volume must be greater than 0 for an order type of {order_type}")
-            return ValueError # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         if take_profit <= 0:
             print(f"Take Profit must be greater than 0 for an order type of {order_type}")
-            return ValueError  # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         if stop_loss <= 0:
             print(f"Stop Loss must be greater than 0 for an order type of {order_type}")
-            return ValueError  # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         if price != None:
             print(f"Price must be NONE for order_type {order_type}")
-            return ValueError # Generic Error Handling Only
+            raise ValueError  # Use Pythons built in error for incorrect value
         else:
             # Make price = 0
             price = 0
@@ -84,20 +84,23 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
 
     # If order_type == "cancel", pass straight through into cancel order function
     if order_type == "CANCEL":
+        # todo: fix this as it is incorrect. These values should come from what is passed to function
         db_object['price'] = 0
         db_object['volume'] = 0
         db_object['take_profit'] = 0
         db_object['stop_loss'] = 0
         # Branch based upon exchange
         if exchange == "mt5":
+            # todo: Implement this within a Try statement
             order_outcome = mt5_interaction.cancel_order(order_number=order_number)
             if order_outcome is True:
                 db_object['status'] = "cancelled"
                 db_object['order_id'] = order_number
-
+            # todo: an error should be raised if order outcome is not True
     # Place order based upon exchange
     else:
         if exchange == "mt5":
+            # todo: this should be implemented inside a try statement
             db_object["order_id"] = mt5_interaction.place_order(
                 order_type=order_type,
                 symbol=symbol,
@@ -152,6 +155,7 @@ def capture_position_update(trade_type, order_number, symbol, strategy, exchange
         # Branch again based upon exchange type
         if exchange == "mt5":
             # Use the modify_position function from mt5_interaction
+            # todo: implement inside a try statement
             position_outcome = mt5_interaction.modify_position(
                 order_number=order_number,
                 symbol=symbol,
@@ -164,6 +168,7 @@ def capture_position_update(trade_type, order_number, symbol, strategy, exchange
         # Branch again based upon exchange type
         if exchange == "mt5":
             # Use the close_position function from mt5_interaction
+            #todo: implement inside a try statement
             position_outcome = mt5_interaction.close_position(
                 order_number=order_number,
                 symbol=symbol,
