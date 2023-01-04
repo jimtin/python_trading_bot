@@ -183,7 +183,9 @@ def create_mt5_backtest_tick_table(table_name, project_settings):
                     f"volume FLOAT4 NOT NULL," \
                     f"flags BIGINT NOT NULL," \
                     f"volume_real FLOAT4 NOT NULL," \
-                    f"time_msc BIGINT NOT NULL"
+                    f"time_msc BIGINT NOT NULL," \
+                    f"human_time DATE NOT NULL," \
+                    f"human_time_msc DATE NOT NULL"
     # Create the table
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
                             id=False)
@@ -201,7 +203,9 @@ def create_mt5_backtest_raw_candlestick_table(table_name, project_settings):
                     f"close FLOAT4 NOT NULL," \
                     f"tick_volume FLOAT4 NOT NULL," \
                     f"spread FLOAT4 NOT NULL," \
-                    f"real_volume FLOAT4 NOT NULL"
+                    f"real_volume FLOAT4 NOT NULL," \
+                    f"human_time DATE NOT NULL," \
+                    f"human_time_msc DATE NOT NULL"
     # Create the table
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings)
 

@@ -357,6 +357,10 @@ def retrieve_latest_tick(symbol):
 
 # Function to retrieve ticks from a time range
 def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=False):
+    print(start_time_utc)
+    new_start_time = start_time_utc.strftime("%Y-%m-%d %H:%M:%S")
+    start_time_utc = datetime.datetime.strptime(new_start_time, "%Y-%m-%d %H:%M:%S")
+    print(start_time_utc)
     # Set option in MT5 terminal for Unlimited bars
     # Check time format of start time
     if type(start_time_utc) != datetime.datetime:
@@ -367,6 +371,8 @@ def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=
         print(f"Time range tick finish time is in incorrect format")
         raise ValueError
     # Retrieve ticks
+
+    print(new_start_time)
     ticks = MetaTrader5.copy_ticks_range(symbol, start_time_utc, finish_time_utc, MetaTrader5.COPY_TICKS_ALL)
     # Convert into dataframe only if Dataframe set to True
     if dataframe:

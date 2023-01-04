@@ -72,15 +72,6 @@ def create_backtest_tables(strategy_name, project_settings):
     except Exception as e:
         print(f"Error creating Tick backtest table. {e}")
 
-    """
-    # Create the raw candlestick data table
-    try:
-        sql_interaction.create_mt5_backtest_raw_candlestick_table(table_name=candle_table_name,
-                                                                  project_settings=project_settings)
-    except Exception as e:
-        print(f"Error creating raw candlestick data backtest table. {e}")
-    """
-
     # Create the trade table
     try:
         sql_interaction.create_mt5_backtest_trade_table(table_name=trade_table_name, project_settings=project_settings)
@@ -115,11 +106,12 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
         finish_time=finish_time_utc,
         symbol=symbol
     )
+    print(ticks_data_frame)
     # Create tick data table name
     tick_table_name = f"{strategy}_mt5_backtest_ticks"
     # Reorder to match creation
     ticks_data_frame = ticks_data_frame[['symbol', 'time', 'bid', 'ask', 'spread', 'last', 'volume', 'flags',
-                                         'volume_real', 'time_msc']]
+                                         'volume_real', 'time_msc', 'human_time', 'human_time_msc']]
     # Write to database
     print(f"Writing tick data for {symbol} to local database")
     upload_to_postgres(ticks_data_frame, tick_table_name, project_settings)
@@ -154,6 +146,7 @@ def split_time_range_in_half(start_time, finish_time):
 
 # Function to retrieve MT5 Tick data with autoscaling options
 def retrieve_mt5_tick_data(start_time, finish_time, symbol):
+    print(f"Times passed to tick collection. Start Time: {start_time}, Finish: {finish_time}")
     # Attempt to retrieve tick data
     tick_data = mt5_interaction.retrieve_tick_time_range(
         start_time_utc=start_time,
@@ -180,6 +173,7 @@ def retrieve_mt5_tick_data(start_time, finish_time, symbol):
         return tick_data_autoscale
     # Else return value
     ticks_data_frame = pandas.DataFrame(tick_data)
+
     # Add spread
     ticks_data_frame['spread'] = ticks_data_frame['ask'] - ticks_data_frame['bid']
     # Add symbol
@@ -188,6 +182,10 @@ def retrieve_mt5_tick_data(start_time, finish_time, symbol):
     ticks_data_frame['time'] = ticks_data_frame['time'].astype('int64')
     ticks_data_frame['volume'] = ticks_data_frame['volume'].astype('int64')
     ticks_data_frame['time_msc'] = ticks_data_frame['time_msc'].astype('int64')
+    # Transform time into a Date object
+    ticks_data_frame['human_time'] = pandas.to_datetime(ticks_data_frame['time'], unit='s')
+    # Transform time_msc into a Date object
+    ticks_data_frame['human_time_msc'] = pandas.to_datetime(ticks_data_frame['time_msc'], unit='ms')
     return ticks_data_frame
 
 
@@ -231,6 +229,7 @@ def retrieve_mt5_candle_data(start_time, finish_time, timeframe, symbol):
     candlestick_dataframe['tick_volume'] = candlestick_dataframe['tick_volume'].astype('float64')
     candlestick_dataframe['spread'] = candlestick_dataframe['spread'].astype('int64')
     candlestick_dataframe['real_volume'] = candlestick_dataframe['real_volume'].astype('int64')
+    candlestick_dataframe['human_time'] = pandas.to_datetime(candlestick_dataframe['time'], unit='s')
     return candlestick_dataframe
 
 

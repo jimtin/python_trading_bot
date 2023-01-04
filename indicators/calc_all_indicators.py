@@ -16,3 +16,4 @@ def all_indicators(dataframe):
     dataframe = ta_ema.calc_ema(dataframe, 20)
     dataframe = ta_ema.calc_ema(dataframe, 50)
     dataframe = ta_ema.calc_ema(dataframe, 200)
+    return dataframe

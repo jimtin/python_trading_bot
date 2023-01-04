@@ -68,7 +68,7 @@ if __name__ == '__main__':
     project_settings = get_project_settings(import_filepath=import_filepath)
     # Check exchanges
     check_exchanges(project_settings)
-    setup_backtest.set_up_backtester("test_script", "blah", "2years", project_settings)
+    setup_backtest.set_up_backtester("test_script", "blah", "month", project_settings)
     display.show_data(project_settings)
 
 

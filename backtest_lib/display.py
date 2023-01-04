@@ -12,7 +12,7 @@ def show_data(project_settings):
     dataframe = sql_interaction.retrieve_dataframe(table_name, project_settings)
     # Construct the figure
     fig = go.Figure(data=[go.Candlestick(
-        x=dataframe['time'],
+        x=dataframe['human_time'],
         open=dataframe['open'],
         high=dataframe['high'],
         close=dataframe['close'],
@@ -20,13 +20,13 @@ def show_data(project_settings):
     )])
 
     fig.add_trace(go.Scatter(
-                x=dataframe['time'],
+                x=dataframe['human_time'],
                 y=dataframe['ta_sma_200']
             )
     )
 
     fig.add_trace(go.Scatter(
-        x=dataframe['time'],
+        x=dataframe['human_time'],
         y=dataframe['ta_ema_200']
     ))
     # Display the figure
