@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="trading_bot_db@localhost" uuid="eaf44599-0332-4e2f-9866-d63c4a64ec18">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/trading_bot_db</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="SHOW_TEMPLATE_DATABASES" value="true" />
+        <property name="database.postgres.introspect.system.schemas" value="true" />
+      </jdbc-additional-properties>
+      <working-dir>$ProjectFileDir$</working-dir>
+      <keep-alive enable="true" />
+    </data-source>
+  </component>
+</project>

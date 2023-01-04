@@ -1,10 +1,11 @@
 from metatrader_lib import mt5_interaction
 from sql_lib import sql_interaction
+import exceptions
 
 
 # Function to capture order actions
 def capture_order(order_type, strategy, exchange, symbol, comment, project_settings,volume=0.0, stop_loss=0.0,
-                  take_profit=0.0, price=None, paper=True, order_number=""):
+                  take_profit=0.0, price=None, paper=True, order_number="", backtest=False):
     """
     Function to capture an order
     :param order_type: String
@@ -82,44 +83,54 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
             price = 0
             db_object['price'] = price
 
-    # If order_type == "cancel", pass straight through into cancel order function
-    if order_type == "CANCEL":
-        # todo: fix this as it is incorrect. These values should come from what is passed to function
-        db_object['price'] = 0
-        db_object['volume'] = 0
-        db_object['take_profit'] = 0
-        db_object['stop_loss'] = 0
-        # Branch based upon exchange
-        if exchange == "mt5":
-            # todo: Implement this within a Try statement
-            order_outcome = mt5_interaction.cancel_order(order_number=order_number)
-            if order_outcome is True:
-                db_object['status'] = "cancelled"
-                db_object['order_id'] = order_number
-            # todo: an error should be raised if order outcome is not True
-    # Place order based upon exchange
+    if backtest == True:
+        pass
     else:
-        if exchange == "mt5":
-            # todo: this should be implemented inside a try statement
-            db_object["order_id"] = mt5_interaction.place_order(
-                order_type=order_type,
-                symbol=symbol,
-                volume=volume,
-                stop_loss=stop_loss,
-                take_profit=take_profit,
-                comment=comment,
-                price=price
-            )
-            # Update the status
-            db_object["status"] = "placed"
+        # If order_type == "cancel", pass straight through into cancel order function
+        if order_type == "CANCEL":
+            db_object['price'] = price
+            db_object['volume'] = volume
+            db_object['take_profit'] = take_profit
+            db_object['stop_loss'] = stop_loss
+            # Branch based upon exchange
+            if exchange == "mt5":
+                try:
+                    order_outcome = mt5_interaction.cancel_order(order_number=order_number)
+                    if order_outcome is True:
+                        db_object['status'] = "cancelled"
+                        db_object['order_id'] = order_number
+                    else:
+                        raise exceptions.MetaTraderCancelOrderError
+                except Exception as e:
+                    print(f"Exception cancelling order order on MT5. {e}")
+        # Place order based upon exchange
+        else:
+            if exchange == "mt5":
+                try:
+                    db_object["order_id"] = mt5_interaction.place_order(
+                        order_type=order_type,
+                        symbol=symbol,
+                        volume=volume,
+                        stop_loss=stop_loss,
+                        take_profit=take_profit,
+                        comment=comment,
+                        price=price
+                    )
+                    # Update the status
+                    db_object["status"] = "placed"
+                except Exception as e:
+                    print(f"Exception placing ")
 
     # Store in correct table
+    if backtest:
+        return True
+
     if paper:
         sql_interaction.insert_paper_trade_action(trade_information=db_object, project_settings=project_settings)
         return True
-    else:
-        sql_interaction.insert_live_trade_action(trade_information=db_object, project_settings=project_settings)
-        return True
+
+    sql_interaction.insert_live_trade_action(trade_information=db_object, project_settings=project_settings)
+    return True
 
 
 # Function to capture modifications to open positions

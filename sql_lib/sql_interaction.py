@@ -1,8 +1,13 @@
 import psycopg2
 import psycopg2.extras
+from sqlalchemy import create_engine
+import pandas
 
 
 # Function to connect to PostgreSQL database
+import exceptions
+
+
 def postgres_connect(project_settings):
     """
     Function to connect to PostgreSQL database
@@ -35,7 +40,7 @@ def sql_execute(sql_query, project_settings):
     conn = postgres_connect(project_settings=project_settings)
     # Execute the query
     try:
-        print(sql_query)
+        #print(sql_query)
         # Create the cursor
         cursor = conn.cursor()
         # Execute the cursor query
@@ -45,7 +50,7 @@ def sql_execute(sql_query, project_settings):
         return True
     except (Exception, psycopg2.Error) as e:
         print(f"Failed to execute query: {e}")
-        return Exception
+        raise e
     finally:
         # If conn has completed, close
         if conn is not None:
@@ -53,7 +58,7 @@ def sql_execute(sql_query, project_settings):
 
 
 # Function to create a table
-def create_sql_table(table_name, table_details, project_settings):
+def create_sql_table(table_name, table_details, project_settings, id=True):
     """
     Function to create a table in SQL
     :param table_name: String
@@ -62,9 +67,17 @@ def create_sql_table(table_name, table_details, project_settings):
     :return: Boolean
     """
     # Create the query string
-    sql_query = f"CREATE TABLE {table_name} (id SERIAL PRIMARY KEY, {table_details})"
+    if id:
+        # Create an auto incrementing primary key
+        sql_query = f"CREATE TABLE {table_name} (id SERIAL PRIMARY KEY, {table_details})"
+    else:
+        # Create without an auto incrementing primary key
+        sql_query = f"CREATE TABLE {table_name} (id BIGINT NOT NULL, {table_details})"
     # Execute the query
-    return sql_execute(sql_query=sql_query, project_settings=project_settings)
+    create_table = sql_execute(sql_query=sql_query, project_settings=project_settings)
+    if create_table:
+        return True
+    raise exceptions.SQLTableCreationError
 
 
 # Function to create a trade table
@@ -75,7 +88,8 @@ def create_trade_table(table_name, project_settings):
     :param project_settings: JSON Object
     :return: Boolean
     """
-    # Define the table according to the CIM: https://github.com/jimtin/python_trading_bot/blob/master/common_information_model.json
+    # Define the table according to the CIM:
+    # https://github.com/jimtin/python_trading_bot/blob/master/common_information_model.json
     table_details = f"strategy VARCHAR(100) NOT NULL," \
                     f"exchange VARCHAR(100) NOT NULL," \
                     f"trade_type VARCHAR(50) NOT NULL," \
@@ -155,3 +169,91 @@ def insert_paper_trade_action(trade_information, project_settings):
         trade_information=trade_information,
         project_settings=project_settings
     )
+
+
+# Function to create a backtest tick table
+def create_mt5_backtest_tick_table(table_name, project_settings):
+    # Define the columns in the table
+    table_details = f"symbol VARCHAR(100) NOT NULL," \
+                    f"time BIGINT NOT NULL," \
+                    f"bid FLOAT4 NOT NULL," \
+                    f"ask FLOAT4 NOT NULL," \
+                    f"spread FLOAT4 NOT NULL," \
+                    f"last FLOAT4 NOT NULL," \
+                    f"volume FLOAT4 NOT NULL," \
+                    f"flags BIGINT NOT NULL," \
+                    f"volume_real FLOAT4 NOT NULL," \
+                    f"time_msc BIGINT NOT NULL"
+    # Create the table
+    return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
+                            id=False)
+
+
+# Function to create a candlestick backtest table
+def create_mt5_backtest_raw_candlestick_table(table_name, project_settings):
+    # Define the columns in the table
+    table_details = f"symbol VARCHAR(100) NOT NULL," \
+                    f"time BIGINT NOT NULL," \
+                    f"timeframe VARCHAR(100) NOT NULL," \
+                    f"open FLOAT4 NOT NULL," \
+                    f"high FLOAT4 NOT NULL," \
+                    f"low FLOAT4 NOT NULL," \
+                    f"close FLOAT4 NOT NULL," \
+                    f"tick_volume FLOAT4 NOT NULL," \
+                    f"spread FLOAT4 NOT NULL," \
+                    f"real_volume FLOAT4 NOT NULL"
+    # Create the table
+    return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings)
+
+
+# Function to create a trade backtest table
+def create_mt5_backtest_trade_table(table_name, project_settings):
+    # Define the table according to the CIM:
+    # https://github.com/jimtin/python_trading_bot/blob/master/common_information_model.json
+    table_details = f"strategy VARCHAR(100) NOT NULL," \
+                    f"exchange VARCHAR(100) NOT NULL," \
+                    f"trade_type VARCHAR(50) NOT NULL," \
+                    f"trade_stage VARCHAR(50) NOT NULL," \
+                    f"symbol VARCHAR(50) NOT NULL," \
+                    f"volume FLOAT4 NOT NULL," \
+                    f"stop_loss FLOAT4 NOT NULL," \
+                    f"take_profit FLOAT4 NOT NULL," \
+                    f"price FLOAT4 NOT NULL," \
+                    f"comment VARCHAR(250) NOT NULL," \
+                    f"status VARCHAR(100) NOT NULL," \
+                    f"order_id VARCHAR(100) NOT NULL"
+    return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
+                            id=False)
+
+
+# Function to write to SQL from csv file
+def upload_from_csv(csv_location, table_name, project_settings):
+    conn = postgres_connect(project_settings)
+    cur = conn.cursor()
+    with open(csv_location, 'r') as f:
+        cur.copy_from(f, table_name, ',')
+
+    f.close()
+
+    conn.commit()
+    conn.close()
+
+
+# Function to retrieve dataframe from Postgres table
+def retrieve_dataframe(table_name, project_settings):
+    # Create the connection object for PostgreSQL
+    engine_string = f"postgresql://{project_settings['postgres']['user']}:{project_settings['postgres']['password']}@" \
+                    f"{project_settings['postgres']['host']}:{project_settings['postgres']['port']}/" \
+                    f"{project_settings['postgres']['database']}"
+    engine = create_engine(engine_string)
+    db_connection = engine.connect()
+    # Create the query
+    sql_query = f"SELECT * FROM {table_name}"
+    # Retrieve the data
+    dataframe = pandas.read_sql(sql_query, db_connection)
+    # Close the connection
+    db_connection.close()
+    # Return the dataframe
+    return dataframe
+
+

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="f8369493-353b-4186-9558-892ec05b7c69" name="trading_bot_db@localhost Mapping">
+      <data-sources db="eaf44599-0332-4e2f-9866-d63c4a64ec18" />
+    </mapping>
+  </component>
+</project>

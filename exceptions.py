@@ -9,6 +9,7 @@ class MetaTraderLoginError(Exception):
     "Error logging in to MetaTrader"
     pass
 
+
 # Incorrect symbol provided
 class MetaTraderSymbolDoesNotExistError(Exception):
     "One of the provided symbols does not exist"
@@ -50,6 +51,7 @@ class MetaTraderModifyPositionError(Exception):
     "Error modifying position on MetaTrader"
     pass
 
+
 # Error closing a position
 class MetaTraderClosePositionError(Exception):
     "Error closing a position on MetaTrader"
@@ -59,4 +61,21 @@ class MetaTraderClosePositionError(Exception):
 # Error for having a zero stop price on a BUY_STOP or SELL_STOP
 class MetaTraderIncorrectStopPriceError(Exception):
     "Cannot have a 0.00 price on a STOP order"
+    pass
+
+
+# Error for zero ticks returned from query
+class MetaTraderZeroTicksDownloadedError(Exception):
+    "Zero ticks retrieved from MetaTrader 5 Terminal"
+    pass
+
+
+# SQL Error
+class SQLTableCreationError(Exception):
+    "Error creating SQL table"
+    pass
+
+# Backtest error
+class BacktestIncorrectBacktestTimeframeError(Exception):
+    "Incorrect timeframe selected for backtest timeframe"
     pass

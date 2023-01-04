@@ -1,4 +1,7 @@
 import MetaTrader5
+import pandas
+import datetime
+
 import exceptions
 
 
@@ -324,6 +327,9 @@ def set_query_timeframe(timeframe):
         return MetaTrader5.TIMEFRAME_W1
     elif timeframe == "MN1":
         return MetaTrader5.TIMEFRAME_MN1
+    else:
+        print(f"Incorrect timeframe provided. {timeframe}")
+        raise ValueError
 
 
 # Function to query previous candlestick data from MT5
@@ -347,4 +353,66 @@ def retrieve_latest_tick(symbol):
     spread = tick['ask'] - tick['bid']
     tick['spread'] = spread
     return tick
+
+
+# Function to retrieve ticks from a time range
+def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=False):
+    # Set option in MT5 terminal for Unlimited bars
+    # Check time format of start time
+    if type(start_time_utc) != datetime.datetime:
+        print(f"Time range tick start time is in incorrect format")
+        raise ValueError
+    # Check time format of finish time
+    if type(finish_time_utc) != datetime.datetime:
+        print(f"Time range tick finish time is in incorrect format")
+        raise ValueError
+    # Retrieve ticks
+    ticks = MetaTrader5.copy_ticks_range(symbol, start_time_utc, finish_time_utc, MetaTrader5.COPY_TICKS_ALL)
+    # Convert into dataframe only if Dataframe set to True
+    if dataframe:
+        # Convert into a dataframe
+        ticks_data_frame = pandas.DataFrame(ticks)
+        # Add spread
+        ticks_data_frame['spread'] = ticks_data_frame['ask'] - ticks_data_frame['bid']
+        # Add symbol
+        ticks_data_frame['symbol'] = symbol
+        # Format integers into signed integers (postgres doesn't support unsigned int)
+        ticks_data_frame['time'] = ticks_data_frame['time'].astype('int64')
+        ticks_data_frame['volume'] = ticks_data_frame['volume'].astype('int64')
+        ticks_data_frame['time_msc'] = ticks_data_frame['time_msc'].astype('int64')
+        return ticks_data_frame
+    return ticks
+
+
+# Function to retrieve candlestick data for a specified time range
+def retrieve_candlestick_data_range(start_time_utc, finish_time_utc, symbol, timeframe, dataframe=False):
+    # Set option in MT5 terminal for Unlimited bars
+    # Check time format of start time
+    if type(start_time_utc) != datetime.datetime:
+        print(f"Time range tick start time is in incorrect format")
+        raise ValueError
+    # Check time format of finish time
+    if type(finish_time_utc) != datetime.datetime:
+        print(f"Time range tick finish time is in incorrect format")
+        raise ValueError
+    # Convert the timeframe into MT5 compatible format
+    timeframe_value = set_query_timeframe(timeframe)
+    # Retrieve the data
+    candlestick_data = MetaTrader5.copy_rates_range(symbol, timeframe_value, start_time_utc, finish_time_utc)
+    if dataframe:
+        # Convert to a dataframe
+        candlestick_dataframe = pandas.DataFrame(candlestick_data)
+        # Add in symbol and timeframe columns
+        candlestick_dataframe['symbol'] = symbol
+        candlestick_dataframe['timeframe'] = timeframe
+        # Convert integers into signed integers (postgres doesn't support unsigned int)
+        candlestick_dataframe['time'] = candlestick_dataframe['time'].astype('int64')
+        candlestick_dataframe['tick_volume'] = candlestick_dataframe['tick_volume'].astype('float64')
+        candlestick_dataframe['spread'] = candlestick_dataframe['spread'].astype('int64')
+        candlestick_dataframe['real_volume'] = candlestick_dataframe['real_volume'].astype('int64')
+        # Return completed dataframe
+        return candlestick_dataframe
+    else:
+        return candlestick_data
+
 
