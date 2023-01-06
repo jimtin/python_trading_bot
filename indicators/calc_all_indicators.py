@@ -1,4 +1,4 @@
-from indicators import ta_sma, ta_ema
+from indicators import ta_sma, ta_ema, two_crows, three_black_crows
 
 # Calculate all the indicators currently available
 def all_indicators(dataframe):
@@ -16,4 +16,8 @@ def all_indicators(dataframe):
     dataframe = ta_ema.calc_ema(dataframe, 20)
     dataframe = ta_ema.calc_ema(dataframe, 50)
     dataframe = ta_ema.calc_ema(dataframe, 200)
+    # Patterns
+    # 2 Crows
+    dataframe = two_crows.calc_two_crows(dataframe)
+    dataframe = three_black_crows.calc_three_black_crows(dataframe)
     return dataframe

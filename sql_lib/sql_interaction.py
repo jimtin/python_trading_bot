@@ -107,7 +107,7 @@ def create_trade_table(table_name, project_settings):
 
 
 # Function to insert a trade action into SQL database
-def insert_trade_action(table_name, trade_information, project_settings):
+def insert_trade_action(table_name, trade_information, project_settings, backtest=False):
     """
     Function to insert a row of trade data
     :param table_name: String
@@ -136,6 +136,8 @@ def insert_trade_action(table_name, trade_information, project_settings):
                     f")"
         # Execute the query
         return sql_execute(sql_query=sql_query, project_settings=project_settings)
+    elif backtest:
+        sql_query = f"INSERT INTO {table_name} "
     else:
         # Return an exception
         return Exception # Custom Error Handling Coming Soon
@@ -225,7 +227,9 @@ def create_mt5_backtest_trade_table(table_name, project_settings):
                     f"price FLOAT4 NOT NULL," \
                     f"comment VARCHAR(250) NOT NULL," \
                     f"status VARCHAR(100) NOT NULL," \
-                    f"order_id VARCHAR(100) NOT NULL"
+                    f"order_id VARCHAR(100) NOT NULL,"
+                    # todo: update with current_balance, available_balance, floating_balance
+                    #f"current_balance"
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
                             id=False)
 
@@ -244,20 +248,44 @@ def upload_from_csv(csv_location, table_name, project_settings):
 
 
 # Function to retrieve dataframe from Postgres table
-def retrieve_dataframe(table_name, project_settings):
+def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=False):
     # Create the connection object for PostgreSQL
     engine_string = f"postgresql://{project_settings['postgres']['user']}:{project_settings['postgres']['password']}@" \
                     f"{project_settings['postgres']['host']}:{project_settings['postgres']['port']}/" \
                     f"{project_settings['postgres']['database']}"
     engine = create_engine(engine_string)
-    db_connection = engine.connect()
     # Create the query
-    sql_query = f"SELECT * FROM {table_name}"
-    # Retrieve the data
-    dataframe = pandas.read_sql(sql_query, db_connection)
-    # Close the connection
-    db_connection.close()
-    # Return the dataframe
-    return dataframe
+    if tick_data:
+        sql_query = f"SELECT * FROM {table_name} ORDER BY time_msc;"
+    else:
+        sql_query = f"SELECT * FROM {table_name} ORDER BY time;"
+    if chunky:
+        # Set the chunk size
+        chunk_size = 10000
+        # Set up database chunking
+        db_connection = engine.connect().execution_options(
+            max_row_buffer=chunk_size
+        )
+        # Retrieve the data
+        dataframe = pandas.read_sql(sql_query, db_connection, chunksize=chunk_size)
+        # Close the connection
+        db_connection.close()
+        # Return the dataframe
+        return dataframe
+    else:
+        # Standard DB connection
+        db_connection = engine.connect()
+        # Retrieve the data
+        dataframe = pandas.read_sql(sql_query, db_connection)
+        # Close the connection
+        db_connection.close()
+        # Return the dataframe
+        return dataframe
+
+
+
+
+
+
 
 

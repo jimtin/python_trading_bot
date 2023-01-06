@@ -1,10 +1,11 @@
 import json
 import os
-from sql_lib import sql_interaction
 from metatrader_lib import mt5_interaction
-from capture_lib import trade_capture
-from backtest_lib import setup_backtest, display
-
+import pandas
+import display_lib
+from sql_lib import sql_interaction
+from strategies import ema_cross
+from backtest_lib import backtest, setup_backtest
 
 # Variable for the location of settings.json
 import_filepath = "settings.json"
@@ -68,7 +69,15 @@ if __name__ == '__main__':
     project_settings = get_project_settings(import_filepath=import_filepath)
     # Check exchanges
     check_exchanges(project_settings)
-    setup_backtest.set_up_backtester("test_script", "blah", "month", project_settings)
-    display.show_data(project_settings)
+    # Show all columns pandas
+    pandas.set_option('display.max_columns', None)
+    #pandas.set_option('display.max_rows', None)
 
+    # Dev code
+    #setup_backtest.set_up_backtester("test_script", "blah", "month", project_settings)
+    #display_lib.show_data("test_script_mt5_backtest_raw_candles", "", "BTC Explorer", project_settings)
+
+    dataframe = sql_interaction.retrieve_dataframe("test_script_mt5_backtest_raw_candles", project_settings)
+    trade_dataframe = ema_cross.ema_cross_strategy(dataframe, display=False, upload=False, project_settings=project_settings)
+    backtest.backtest(trade_dataframe, 1800, "test_script_mt5_backtest_ticks", project_settings)
 

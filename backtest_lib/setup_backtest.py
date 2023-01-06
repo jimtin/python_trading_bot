@@ -106,7 +106,6 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
         finish_time=finish_time_utc,
         symbol=symbol
     )
-    print(ticks_data_frame)
     # Create tick data table name
     tick_table_name = f"{strategy}_mt5_backtest_ticks"
     # Reorder to match creation
@@ -115,7 +114,6 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
     # Write to database
     print(f"Writing tick data for {symbol} to local database")
     upload_to_postgres(ticks_data_frame, tick_table_name, project_settings)
-    print(len(ticks_data_frame))
     # Retrieve candlestick data
     for candle in candlesticks:
         print(f"Retrieving {candle} data for {symbol}")
@@ -146,7 +144,6 @@ def split_time_range_in_half(start_time, finish_time):
 
 # Function to retrieve MT5 Tick data with autoscaling options
 def retrieve_mt5_tick_data(start_time, finish_time, symbol):
-    print(f"Times passed to tick collection. Start Time: {start_time}, Finish: {finish_time}")
     # Attempt to retrieve tick data
     tick_data = mt5_interaction.retrieve_tick_time_range(
         start_time_utc=start_time,
