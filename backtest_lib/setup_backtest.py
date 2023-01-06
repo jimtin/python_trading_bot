@@ -180,8 +180,10 @@ def retrieve_mt5_tick_data(start_time, finish_time, symbol):
     ticks_data_frame['volume'] = ticks_data_frame['volume'].astype('int64')
     ticks_data_frame['time_msc'] = ticks_data_frame['time_msc'].astype('int64')
     # Transform time into a Date object
+    # Todo: Make sure it includes seconds
     ticks_data_frame['human_time'] = pandas.to_datetime(ticks_data_frame['time'], unit='s')
     # Transform time_msc into a Date object
+    # Todo: Make sure it includes seconds
     ticks_data_frame['human_time_msc'] = pandas.to_datetime(ticks_data_frame['time_msc'], unit='ms')
     return ticks_data_frame
 
