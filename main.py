@@ -79,5 +79,13 @@ if __name__ == '__main__':
 
     dataframe = sql_interaction.retrieve_dataframe("test_script_mt5_backtest_raw_candles", project_settings)
     trade_dataframe = ema_cross.ema_cross_strategy(dataframe, display=False, upload=False, project_settings=project_settings)
-    backtest.backtest(trade_dataframe, 1800, "test_script_mt5_backtest_ticks", project_settings)
+    backtest.backtest(
+        valid_trades_dataframe=trade_dataframe,
+        time_orders_valid=1800,
+        tick_data_table_name="test_script_mt5_backtest_ticks",
+        trade_table_name="test_script_mt5_backtest_trade_actions",
+        project_settings=project_settings,
+        strategy="test_strategy",
+        symbol="BTCUSD.a"
+    )
 

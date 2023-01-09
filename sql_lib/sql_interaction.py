@@ -221,17 +221,19 @@ def create_mt5_backtest_trade_table(table_name, project_settings):
                     f"trade_type VARCHAR(50) NOT NULL," \
                     f"trade_stage VARCHAR(50) NOT NULL," \
                     f"symbol VARCHAR(50) NOT NULL," \
-                    f"volume FLOAT4 NOT NULL," \
+                    f"qty_purchased FLOAT4 NOT NULL," \
+                    f"leverage FLOAT4 NOT NULL," \
                     f"stop_loss FLOAT4 NOT NULL," \
                     f"take_profit FLOAT4 NOT NULL," \
                     f"price FLOAT4 NOT NULL," \
                     f"comment VARCHAR(250) NOT NULL," \
                     f"status VARCHAR(100) NOT NULL," \
-                    f"order_id VARCHAR(100) NOT NULL,"
-                    # todo: update with current_balance, available_balance, floating_balance
-                    #f"current_balance"
+                    f"order_id VARCHAR(100) NOT NULL," \
+                    f"balance FLOAT4 NOT NULL," \
+                    f"equity FLOAT4 NOT NULL," \
+                    f"update_time FLOAT4 NOT NULL"
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
-                            id=False)
+                            id=True)
 
 
 # Function to write to SQL from csv file
@@ -261,7 +263,7 @@ def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=Fal
         sql_query = f"SELECT * FROM {table_name} ORDER BY time;"
     if chunky:
         # Set the chunk size
-        chunk_size = 10000
+        chunk_size = 10000 # You may need to adjust this based upon your processor
         # Set up database chunking
         db_connection = engine.connect().execution_options(
             max_row_buffer=chunk_size
@@ -283,9 +285,90 @@ def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=Fal
         return dataframe
 
 
+# Function to add a backtest update
+def insert_backtest_update(strategy, exchange, trade_type, trade_stage, symbol, qty_purchased, leverage, stop_loss,
+                           take_profit, price, comment, status, order_id, available_balance, equity, table_name,
+                           project_settings, update_time):
+    # Create the SQL statement
+    sql_query = f"INSERT INTO {table_name} (strategy, exchange, trade_type, trade_stage, symbol, qty_purchased, " \
+                f"leverage, stop_loss, take_profit, price, comment, status, order_id, balance, equity, update_time) " \
+                f"VALUES (" \
+                f"'{strategy}'," \
+                f"'{exchange}'," \
+                f"'{trade_type}'," \
+                f"'{trade_stage}'," \
+                f"'{symbol}'," \
+                f"'{qty_purchased}'," \
+                f"'{leverage}'," \
+                f"'{stop_loss}'," \
+                f"'{take_profit}'," \
+                f"'{price}'," \
+                f"'{comment}'," \
+                f"'{status}'," \
+                f"'{order_id}'," \
+                f"'{available_balance}'," \
+                f"'{equity}'," \
+                f"'{update_time}'" \
+                f");"
+    try:
+        return sql_execute(sql_query=sql_query, project_settings=project_settings)
+    except Exception as e:
+        raise exceptions.SQLBacktestTradeActionError
 
 
+# Function to add a new order from backtester
+def insert_order_update(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
+                        project_settings):
+    return insert_backtest_update(
+        strategy=trade_object["strategy"],
+        exchange="testing",
+        trade_type=trade_type,
+        trade_stage="order",
+        symbol=trade_object["symbol"],
+        qty_purchased=0.00,
+        leverage=trade_object["backtest_settings"]["leverage"],
+        stop_loss=stop_loss,
+        take_profit=take_profit,
+        price=price,
+        comment="backtest",
+        status=status,
+        order_id=order_id,
+        available_balance=trade_object["current_available_balance"],
+        equity=trade_object["current_equity"],
+        update_time=update_time,
+        table_name=trade_object["trade_table_name"],
+        project_settings=project_settings
+    )
+
+def insert_new_position(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
+                        project_settings, qty_purchased):
+    return insert_backtest_update(
+        strategy=trade_object["strategy"],
+        exchange="testing",
+        trade_type=trade_type,
+        trade_stage="position",
+        symbol=trade_object["symbol"],
+        qty_purchased=qty_purchased,
+        leverage=trade_object["backtest_settings"]['leverage'],
+        stop_loss=stop_loss,
+        take_profit=take_profit,
+        price=price,
+        comment="backtest",
+        status=status,
+        order_id=order_id,
+        available_balance=trade_object["current_available_balance"],
+        equity=trade_object["current_equity"],
+        table_name=trade_object["trade_table_name"],
+        update_time=update_time,
+        project_settings=project_settings
+    )
 
 
-
+# Retrieve last take_profit entry for an order
+def retrieve_last_position(order_id, trade_object, project_settings):
+    # Create the SQL query
+    sql_query = f"SELECT * FROM {trade_object['trade_table_name']} WHERE symbol='{trade_object['symbol']}' AND " \
+                f"strategy='{trade_object['strategy']}' AND order_id='{order_id}' ORDER BY id DESC LIMIT 1;"
+    # Execute the SQL Query
+    return sql_execute(sql_query, project_settings)
 

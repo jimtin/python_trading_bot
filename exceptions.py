@@ -75,6 +75,11 @@ class SQLTableCreationError(Exception):
     "Error creating SQL table"
     pass
 
+# SQL Back Test Trade Action Error
+class SQLBacktestTradeActionError(Exception):
+    "Error inserting SQL Trade Action"
+    pass
+
 # Backtest error
 class BacktestIncorrectBacktestTimeframeError(Exception):
     "Incorrect timeframe selected for backtest timeframe"
