@@ -3,7 +3,6 @@ import psycopg2.extras
 from sqlalchemy import create_engine
 import pandas
 
-
 # Function to connect to PostgreSQL database
 import exceptions
 
@@ -40,7 +39,7 @@ def sql_execute(sql_query, project_settings):
     conn = postgres_connect(project_settings=project_settings)
     # Execute the query
     try:
-        #print(sql_query)
+        # print(sql_query)
         # Create the cursor
         cursor = conn.cursor()
         # Execute the cursor query
@@ -78,6 +77,15 @@ def create_sql_table(table_name, table_details, project_settings, id=True):
     if create_table:
         return True
     raise exceptions.SQLTableCreationError
+
+
+# Function to retrieve data from SQL
+def get_data(sql_query, project_settings):
+    conn = postgres_connect(project_settings)
+    cur = conn.cursor()
+    cur.execute(sql_query)
+    result = cur.fetchall()
+    return result
 
 
 # Function to create a trade table
@@ -140,7 +148,7 @@ def insert_trade_action(table_name, trade_information, project_settings, backtes
         sql_query = f"INSERT INTO {table_name} "
     else:
         # Return an exception
-        return Exception # Custom Error Handling Coming Soon
+        return Exception  # Custom Error Handling Coming Soon
 
 
 # Function to insert a live trade action into SQL database
@@ -231,7 +239,9 @@ def create_mt5_backtest_trade_table(table_name, project_settings):
                     f"order_id VARCHAR(100) NOT NULL," \
                     f"balance FLOAT4 NOT NULL," \
                     f"equity FLOAT4 NOT NULL," \
-                    f"update_time FLOAT4 NOT NULL"
+                    f"update_time FLOAT4 NOT NULL," \
+                    f"entry_price FLOAT4 NOT NULL," \
+                    f"exit_price FLOAT4 NOT NULL"
     return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings,
                             id=True)
 
@@ -263,7 +273,7 @@ def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=Fal
         sql_query = f"SELECT * FROM {table_name} ORDER BY time;"
     if chunky:
         # Set the chunk size
-        chunk_size = 10000 # You may need to adjust this based upon your processor
+        chunk_size = 10000  # You may need to adjust this based upon your processor
         # Set up database chunking
         db_connection = engine.connect().execution_options(
             max_row_buffer=chunk_size
@@ -288,11 +298,11 @@ def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=Fal
 # Function to add a backtest update
 def insert_backtest_update(strategy, exchange, trade_type, trade_stage, symbol, qty_purchased, leverage, stop_loss,
                            take_profit, price, comment, status, order_id, available_balance, equity, table_name,
-                           project_settings, update_time):
+                           project_settings, update_time, entry_price, exit_price):
     # Create the SQL statement
     sql_query = f"INSERT INTO {table_name} (strategy, exchange, trade_type, trade_stage, symbol, qty_purchased, " \
-                f"leverage, stop_loss, take_profit, price, comment, status, order_id, balance, equity, update_time) " \
-                f"VALUES (" \
+                f"leverage, stop_loss, take_profit, price, comment, status, order_id, balance, equity, update_time, " \
+                f"entry_price, exit_price) VALUES (" \
                 f"'{strategy}'," \
                 f"'{exchange}'," \
                 f"'{trade_type}'," \
@@ -308,7 +318,9 @@ def insert_backtest_update(strategy, exchange, trade_type, trade_stage, symbol, 
                 f"'{order_id}'," \
                 f"'{available_balance}'," \
                 f"'{equity}'," \
-                f"'{update_time}'" \
+                f"'{update_time}'," \
+                f"'{entry_price}'," \
+                f"'{exit_price}'" \
                 f");"
     try:
         return sql_execute(sql_query=sql_query, project_settings=project_settings)
@@ -337,11 +349,14 @@ def insert_order_update(trade_type, status, stop_loss, take_profit, price, order
         equity=trade_object["current_equity"],
         update_time=update_time,
         table_name=trade_object["trade_table_name"],
-        project_settings=project_settings
+        project_settings=project_settings,
+        entry_price=0.00,
+        exit_price=0.00
     )
 
+
 def insert_new_position(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
-                        project_settings, qty_purchased):
+                        project_settings, qty_purchased, entry_price):
     return insert_backtest_update(
         strategy=trade_object["strategy"],
         exchange="testing",
@@ -360,7 +375,35 @@ def insert_new_position(trade_type, status, stop_loss, take_profit, price, order
         equity=trade_object["current_equity"],
         table_name=trade_object["trade_table_name"],
         update_time=update_time,
-        project_settings=project_settings
+        project_settings=project_settings,
+        entry_price=entry_price,
+        exit_price=0.00
+    )
+
+
+def position_close(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
+                           project_settings, qty_purchased, trade_stage, entry_price, exit_price):
+    return insert_backtest_update(
+        strategy=trade_object["strategy"],
+        exchange="testing",
+        trade_type=trade_type,
+        trade_stage=trade_stage,
+        symbol=trade_object["symbol"],
+        qty_purchased=qty_purchased,
+        leverage=trade_object["backtest_settings"]['leverage'],
+        stop_loss=stop_loss,
+        take_profit=take_profit,
+        price=price,
+        comment="backtest",
+        status=status,
+        order_id=order_id,
+        available_balance=trade_object["current_available_balance"],
+        equity=trade_object["current_equity"],
+        table_name=trade_object["trade_table_name"],
+        update_time=update_time,
+        project_settings=project_settings,
+        entry_price=entry_price,
+        exit_price=exit_price
     )
 
 
@@ -370,5 +413,16 @@ def retrieve_last_position(order_id, trade_object, project_settings):
     sql_query = f"SELECT * FROM {trade_object['trade_table_name']} WHERE symbol='{trade_object['symbol']}' AND " \
                 f"strategy='{trade_object['strategy']}' AND order_id='{order_id}' ORDER BY id DESC LIMIT 1;"
     # Execute the SQL Query
-    return sql_execute(sql_query, project_settings)
+    return get_data(sql_query, project_settings)
+
+
+# Function to save a dataframe
+def save_dataframe(dataframe, table_name, project_settings):
+    # Create the connection object for PostgreSQL
+    engine_string = f"postgresql://{project_settings['postgres']['user']}:{project_settings['postgres']['password']}@" \
+                    f"{project_settings['postgres']['host']}:{project_settings['postgres']['port']}/" \
+                    f"{project_settings['postgres']['database']}"
+    engine = create_engine(engine_string)
+    # Save
+    dataframe.to_sql(table_name, engine, if_exists='append')
 

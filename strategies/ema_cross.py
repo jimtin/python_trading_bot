@@ -129,10 +129,12 @@ def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=
     for index, row in cross_events.iterrows():
         if row['crossover'] == True:
             if row['order_type'] == "BUY_STOP":
-                valid = row['take_profit'] > row['stop_price']
+                if row['take_profit'] > row['stop_price'] and row['stop_price'] > row['stop_loss']:
+                    valid = True
                 cross_events.loc[index, 'valid'] = valid
             elif row['order_type'] == "SELL_STOP":
-                valid = row['stop_price'] > row['take_profit']
+                if row['stop_price'] > row['take_profit'] and row['stop_loss'] > row['take_profit']:
+                    valid = True
                 cross_events.loc[index, 'valid'] = valid
             else:
                 cross_events.loc[index, 'valid'] = False

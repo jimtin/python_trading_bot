@@ -86,6 +86,7 @@ if __name__ == '__main__':
         trade_table_name="test_script_mt5_backtest_trade_actions",
         project_settings=project_settings,
         strategy="test_strategy",
-        symbol="BTCUSD.a"
+        symbol="BTCUSD.a",
+        comment="initial_strategy"
     )
 
