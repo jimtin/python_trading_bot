@@ -42,7 +42,7 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
     except Exception as e:
         print(f"Error creating backtest trade table. {e}")
     with conn.cursor(name="backtest_cursor") as cursor:
-        cursor.itersize = 100000
+        cursor.itersize = 1000000
         query = f"SELECT * FROM {tick_data_table_name} ORDER BY time_msc;"
         cursor.execute(query)
         tic = time.perf_counter()
@@ -159,6 +159,20 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                     )
         # Return the totals back
         total_value = trade_object['current_available_balance'] + trade_object['current_equity']
+        # At the conclusion of the testing, close any open orders at the same price brought at
+        # Get the last tick (for close time)
+        last_tick = sql_interaction.retrieve_last_tick(
+            tick_table_name=tick_data_table_name,
+            project_settings=project_settings
+        )
+        # Get the close time
+        close_time = last_tick[0][10]/1000
+        close_open_positions(
+            open_buy_positions=open_buy_positions,
+            open_sell_positions=open_sell_positions,
+            update_time=close_time,
+            project_settings=project_settings
+        )
         print(f"Total value at conclusion of test: {total_value}. Breakdown: "
               f"Balance: {trade_object['current_available_balance']}, Equity: {trade_object['current_equity']}")
         toc = time.perf_counter()
@@ -179,7 +193,10 @@ def new_order(order_dataframe, new_order, row, project_settings):
         trade_object['current_equity'] = trade_object['current_equity'] + risk['risk_amount']
         print(f"Order Became valid. "
               f"Balance: {trade_object['current_available_balance']}, "
-              f"Equity: {trade_object['current_equity']}, Order ID: {order_id}, Order Price: {row['bid']}")
+              f"Equity: {trade_object['current_equity']}, "
+              f"Order ID: {order_id}, "
+              f"Order Price: {row['bid']},"
+              f"Balance Risked: {risk}")
         # Update SQL table with order
         sql_interaction.insert_order_update(
             update_time=row["time_msc"],
@@ -291,21 +308,22 @@ def buy_take_profit_reached(position_dataframe, position, row, project_settings)
             trade_object=trade_object,
             project_settings=project_settings
         )
-        print(pos_tp)
         # Calculate the volume originally purchased
-        vol_purchased = last_trade[0][6] * last_trade[0][7] / last_trade[0][10]
+        vol_purchased = last_trade[0][6]
         # Calculate the price sold
         price_sold = vol_purchased * row['bid']
         # Calculate the profit / loss
-        outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
-        print(f"BUY Take Profit activated for {pos_tp[0]}. Outcome: {outcome}. ")
+        outcome = price_sold - (last_trade[0][6] * last_trade[0][17])
         # Update the available balance with the amount risked
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
-        print(f"Updated Balance: {trade_object['current_available_balance']}. "
-              f"Updated Equity: {trade_object['current_equity']}")
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                    pos_tp[1]['amount_risked']
         # Remove the equity risked
-        trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
+        trade_object['current_equity'] = trade_object['current_equity'] - pos_tp[1]['amount_risked']
+        print(f"BUY Take Profit activated for {pos_tp[0]}. Outcome: {outcome}. Updated Balance: "
+              f"{trade_object['current_available_balance']}. "
+              f"Updated Equity: {trade_object['current_equity']}")
+
         # Update SQL
         sql_interaction.position_close(
             trade_type=pos_tp[1]['order_type'],
@@ -350,19 +368,22 @@ def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
             project_settings=project_settings
         )
         # Calculate the volume originally purchased
-        vol_purchased = last_trade[0][6] * last_trade[0][7] / last_trade[0][10]
+        vol_purchased = last_trade[0][6]
         # Calculate the price sold
         price_sold = vol_purchased * row['bid']
         # Calculate the profit / loss
-        outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
-        print(f"BUY Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}, "
-              f"Updated Balance: {trade_object['current_available_balance']}. "
-              f"Updated Equity: {trade_object['current_equity']}")
+        outcome = price_sold - (last_trade[0][6] * last_trade[0][17])
         # Update the available balance with the amount risked
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                    pos_sl[1]['amount_risked']
         # Remove the equity risked
-        trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
+        trade_object['current_equity'] = trade_object['current_equity'] - pos_sl[1]['amount_risked']
+        print(f"BUY Stop Loss activated for {pos_sl[0]}. "
+              f"Outcome: {outcome}, "
+              f"Updated Balance: {trade_object['current_available_balance']}. "
+              f"Updated Equity: {trade_object['current_equity']}")
+
         # Update status of position
         position['status'] = "closed"
         # Update SQL tracking
@@ -407,20 +428,21 @@ def sell_take_profit_reached(position_dataframe, position, row, project_settings
             project_settings=project_settings
         )
         # Calculate the volume originally purchased
-        vol_purchased = last_trade[0][6] * last_trade[0][7] / last_trade[0][10]
+        vol_purchased = last_trade[0][6]
         # Calculate the price sold
         price_sold = vol_purchased * row['bid']
         # Calculate the profit / loss
-        outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
+        outcome = price_sold - (last_trade[0][6] * last_trade[0][17])
         outcome = outcome * -1
+        # Update the available balance with the amount risked
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                    pos_tp[1]['amount_risked']
+        # Remove the equity risked
+        trade_object['current_equity'] = trade_object['current_equity'] - pos_tp[1]['amount_risked']
         print(f"Sell Take Profit activated for {pos_tp[0]}. Outcome: {outcome}. "
               f"Updated Balance: {trade_object['current_available_balance']}. "
               f"Updated Equity: {trade_object['current_equity']}")
-        # Update the available balance with the amount risked
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
-        # Remove the equity risked
-        trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
         # Update status of position
         position['status'] = 'closed'
         # Update SQL tracking
@@ -465,21 +487,22 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
             project_settings=project_settings
         )
         # Calculate the volume originally purchased
-        vol_purchased = last_trade[0][6] * last_trade[0][7] / last_trade[0][10]
+        vol_purchased = last_trade[0][6]
         # Calculate the price sold
         price_sold = vol_purchased * row['bid']
         # Calculate the profit / loss
-        outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
+        outcome = price_sold - (last_trade[0][6] * last_trade[0][17])
         # Reverse sign on outcome to account for down direction
         outcome = outcome * -1
+        # Update the available balance with the amount risked
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                    pos_sl[1]['amount_risked']
+        # Remove the equity risked
+        trade_object['current_equity'] = trade_object['current_equity'] - pos_sl[1]['amount_risked']
         print(f"SELL Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}."
               f"Updated Balance: {trade_object['current_available_balance']}. "
               f"Updated Equity: {trade_object['current_equity']}")
-        # Update the available balance with the amount risked
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
-        trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
-        # Remove the equity risked
-        trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
         # Update status of position
         position['status'] = 'closed'
         # Update position tracking
@@ -514,6 +537,65 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
     return position_dataframe
 
 
+# Function to close open orders at conclusion of testing
+def close_open_positions(open_buy_positions, open_sell_positions, update_time, project_settings):
+    # Close any open buy positions
+    if len(open_buy_positions) > 0:
+        for row in open_buy_positions.iterrows():
+            trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                        row[1]['amount_risked']
+            trade_object['current_equity'] = trade_object['current_equity'] - row[1]['amount_risked']
+            last_trade = sql_interaction.retrieve_last_position(
+                order_id=row[0],
+                trade_object=trade_object,
+                project_settings=project_settings
+            )
+            # Close the position
+            sql_interaction.position_close(
+                trade_type=row[1]['order_type'],
+                status="backtest_closed",
+                stop_loss=row[1]['stop_loss'],
+                take_profit=row[1]['take_profit'],
+                price=last_trade[0][17],
+                order_id=row[0],
+                trade_object=trade_object,
+                update_time=update_time,
+                project_settings=project_settings,
+                entry_price=last_trade[0][17],
+                exit_price=last_trade[0][17],
+                qty_purchased=last_trade[0][6],
+                trade_stage="position"
+            )
+    # Close any open sell positions
+    if len(open_sell_positions) > 0:
+        for row in open_sell_positions.iterrows():
+            trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                        row[1]['amount_risked']
+            trade_object['current_equity'] = trade_object['current_equity'] - row[1]['amount_risked']
+            last_trade = sql_interaction.retrieve_last_position(
+                order_id=row[0],
+                trade_object=trade_object,
+                project_settings=project_settings
+            )
+            # Close the position
+            sql_interaction.position_close(
+                trade_type=row[1]['order_type'],
+                status="backtest_closed",
+                stop_loss=row[1]['stop_loss'],
+                take_profit=row[1]['take_profit'],
+                price=last_trade[0][17],
+                order_id=row[0],
+                trade_object=trade_object,
+                update_time=update_time,
+                project_settings=project_settings,
+                entry_price=last_trade[0][17],
+                exit_price=last_trade[0][17],
+                qty_purchased=last_trade[0][6],
+                trade_stage="position"
+            )
+
+
+
 def calc_risk_to_dollars():
     # Setup the trade settings
     purchase_dollars = {
@@ -521,10 +603,10 @@ def calc_risk_to_dollars():
     }
     if trade_object["backtest_settings"]["compounding"] == "true":
         risk_amount = trade_object["current_available_balance"] * \
-                      trade_object["backtest_settings"]["risk_percent"] / 100
+                      trade_object["backtest_settings"]["balance_risk_percent"] / 100
     else:
         risk_amount = trade_object["backtest_settings"]["test_balance"] * \
-                      trade_object["backtest_settings"]["risk_percent"] / 100
+                      trade_object["backtest_settings"]["balance_risk_percent"] / 100
     # Save to variable
     purchase_dollars["risk_amount"] = risk_amount
     # Multiply by the leverage

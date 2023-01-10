@@ -8,7 +8,8 @@ from strategies import ema_cross
 
 # Function to initiate and manage backtest
 def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project_settings, get_data=True,
-                exchange="mt5", optimize=False, show_only=False, optimize_variables={}):
+                exchange="mt5", optimize=False, display=False, optimize_variables={}, analyze=False,
+                redo_analysis=False, regather_data=False):
     risk_ratio = 3
     symbol_name = symbol.split(".")
     # Set the table names
@@ -18,6 +19,10 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
     trade_table_name = f"{table_name_base}trade_actions".lower()
     balance_tracker_table = f"{table_name_base}balance".lower()
     valid_trades_table = f"{table_name_base}trades".lower()
+    if regather_data:
+        # todo: Delete previous data
+        pass
+    # If data required
     if get_data:
         # Set up backtest Postgres Tables and get raw data
         setup_backtest.set_up_backtester(
@@ -31,41 +36,21 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
             tick_table_name=tick_data_table_name,
             balance_tracker_table=balance_tracker_table
         )
-
-    raw_dataframe = sql_interaction.retrieve_dataframe(
-        table_name=raw_data_table_name,
-        project_settings=project_settings
-    )
-    # Construct the trades
-    if optimize:
-        # Optimize the take profit.
-
+    if redo_analysis:
+        # todo: Delete previous analysis tables
         pass
-    elif show_only:
-        trade_object = {
-            "trade_table_name": trade_table_name,
-            "strategy": strategy_name,
-        }
-        # Get the base figure
-        trades_dataframe = ema_cross.ema_cross_strategy(
-            dataframe=raw_dataframe,
-            risk_ratio=risk_ratio,
-            backtest=False
+    if analyze:
+        # Get the raw data
+        raw_dataframe = sql_interaction.retrieve_dataframe(
+            table_name=raw_data_table_name,
+            project_settings=project_settings
         )
-        show_user(
-            trade_object=trade_object,
-            base_fig=trades_dataframe[0],
-            project_settings=project_settings,
-            strategy=strategy_name,
-            symbol=symbol
-        )
-    else:
         # Construct the trades
         trades_dataframe = ema_cross.ema_cross_strategy(
             dataframe=raw_dataframe,
             risk_ratio=3
         )
-        # Run the backtester
+        # Run the backtest
         backtest.backtest(
             valid_trades_dataframe=trades_dataframe[0],
             time_orders_valid=1800,
@@ -78,18 +63,43 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
             balance_table=balance_tracker_table,
             valid_trades_table=valid_trades_table
         )
-        # Construct trade object
+        # Capture outcomes
+        #todo: Calculate trade outcomes function
+        #todo: Save trade outcomes to SQL (preparation for optimization)
+
+    # Construct the trades
+    if optimize:
+        # Optimize the take profit.
+
+        pass
+
+    if display:
         trade_object = {
             "trade_table_name": trade_table_name,
             "strategy": strategy_name,
         }
+        # Retrieve raw dataframe
+        raw_dataframe = sql_interaction.retrieve_dataframe(
+            table_name=raw_data_table_name,
+            project_settings=project_settings
+        )
+        # Retrieve trades dataframe
+        trades_dataframe = ema_cross.ema_cross_strategy(
+            dataframe=raw_dataframe,
+            risk_ratio=risk_ratio,
+            backtest=False
+        )
+        # todo: retrieve calculated trades
+        # todo: retrieve balance
+        # todo: pass to show user function
         show_user(
             trade_object=trade_object,
-            base_fig=trades_dataframe[1],
+            base_fig=trades_dataframe[0],
             project_settings=project_settings,
             strategy=strategy_name,
             symbol=symbol
         )
+    return True
 
 
 # Function to display backtest details to user

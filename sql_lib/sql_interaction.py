@@ -474,3 +474,9 @@ def retrieve_trade_details(order_id, trade_object, project_settings):
     sql_query = f"SELECT * from {trade_object['trade_table_name']} WHERE strategy='{trade_object['strategy']}' " \
                 f"and trade_stage='position' and order_id='{order_id}';"
     return get_data(sql_query, project_settings)
+
+
+# Function to retrieve the last tick
+def retrieve_last_tick(tick_table_name, project_settings):
+    sql_query = f"SELECT * from {tick_table_name} ORDER BY time_msc DESC LIMIT 1;"
+    return get_data(sql_query, project_settings)

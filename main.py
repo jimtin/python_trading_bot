@@ -78,8 +78,10 @@ if __name__ == '__main__':
         strategy_name="ema_15_200_cross",
         symbol="USDJPY.a",
         candle_timeframe=["M30"],
-        test_timeframe="6month",
+        test_timeframe="month",
         project_settings=project_settings,
+        get_data=True,
+        analyze=True
     )
 
 

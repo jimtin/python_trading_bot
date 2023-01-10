@@ -37,6 +37,9 @@ def set_up_backtester(strategy_name, symbol, candle_timeframe, backtest_timefram
     if backtest_timeframe == "month":
         previous_datetime = current_datetime - relativedelta(months=1)
         pass
+    elif backtest_timeframe == "5days":
+        previous_datetime = current_datetime - relativedelta(days=5)
+        pass
     elif backtest_timeframe == "6month":
         previous_datetime = current_datetime - relativedelta(months=6)
         pass
