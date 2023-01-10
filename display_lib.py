@@ -1,3 +1,5 @@
+import plotly.subplots
+
 from sql_lib import sql_interaction
 import pandas
 import plotly.graph_objects as go
@@ -150,3 +152,48 @@ def add_markers_to_graph(base_fig, dataframe, value_column, point_names):
          name=point_names
      ))
      return base_fig
+
+
+# Function to add trades to graph
+def add_trades_to_graph(trades, base_fig=None, display_on_base=True):
+    # Create a point plot list
+    point_plot = []
+    # Create the colors
+    buy_color = dict(color="green")
+    sell_color = dict(color="red")
+    # Add each set of trades
+    for trade in trades:
+        if trade['trade_type'] == "BUY_STOP":
+            color = buy_color
+        else:
+            color = sell_color
+        point_plot.append(
+            go.Scatter(
+                x=[trade['open_time'], trade['close_time']],
+                y=[trade['open_price'], trade['close_price']],
+                name=trade['name'],
+                legendgroup=trade['trade_type'],
+                line=color
+            )
+        )
+    if display_on_base:
+        if not base_fig:
+            base_fig.add_trace(point_plot)
+            return base_fig
+        else:
+            raise ValueError("Base Fig cannot be null for display on base selection")
+    else:
+        trade_fig = go.Figure(data=point_plot)
+        return trade_fig
+
+
+def backtest_display(prices, trades, balance, title):
+    # Construct the graph with subplots
+    fig = plotly.subplots.make_subplots(rows=3, cols=1)
+    # Add the base graph
+    fig.add_trace(prices, row=1, col=1)
+    # Add Trades separately
+    fig.add_trace(trades, row=2, col=1)
+    # Display
+    display_graph(fig, title, dash=True)
+

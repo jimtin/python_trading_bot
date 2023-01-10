@@ -368,7 +368,7 @@ def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=
         print(f"Time range tick finish time is in incorrect format")
         raise ValueError
     # Retrieve ticks
-    ticks = MetaTrader5.copy_ticks_range(symbol, start_time_utc, finish_time_utc, MetaTrader5.COPY_TICKS_ALL)
+    ticks = MetaTrader5.copy_ticks_range(symbol, start_time_utc, finish_time_utc, MetaTrader5.COPY_TICKS_INFO)
     # Convert into dataframe only if Dataframe set to True
     if dataframe:
         # Convert into a dataframe

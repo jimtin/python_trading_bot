@@ -4,10 +4,11 @@ Assumptions:
 '''
 from indicators import ema_cross
 import display_lib
+from backtest_lib import backtest_analysis
 
 
 # Main display function
-def ema_cross_strategy(dataframe, backtest=True, display=True, upload=False, project_settings=[]):
+def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upload=False):
     # Determine EMA Cross Events for EMA 15 and EMA 200
     print("Calculating cross events for EMA 15 and EMA 200")
     ema_one = "ta_ema_15"
@@ -22,7 +23,7 @@ def ema_cross_strategy(dataframe, backtest=True, display=True, upload=False, pro
         ema_one=ema_one,
         ema_two=ema_two,
         pip_size=0.01,
-        risk_ratio=1
+        risk_ratio=risk_ratio
     )
     # Extract cross events
     cross_events = order_dataframe[order_dataframe['crossover'] == True]
@@ -30,52 +31,49 @@ def ema_cross_strategy(dataframe, backtest=True, display=True, upload=False, pro
     valid_trades = cross_events[cross_events['valid'] == True]
     # Extract invalid trades from cross events
     invalid_trades = cross_events[cross_events['valid'] == False]
+    # Build the display object
+    # Update plotting
+    fig = display_lib.construct_base_candlestick_graph(dataframe=cross_event_dataframe, candlestick_title="BTCUSD Raw")
+    # Add ta_ema_15
+    fig = display_lib.add_line_to_graph(
+        base_fig=fig,
+        dataframe=cross_event_dataframe,
+        dataframe_column="ta_ema_15",
+        line_name="EMA 15"
+    )
+    # Add ta_ema_200
+    fig = display_lib.add_line_to_graph(
+        base_fig=fig,
+        dataframe=cross_event_dataframe,
+        dataframe_column="ta_ema_200",
+        line_name="EMA 15"
+    )
+    # Add cross event display
+    fig = display_lib.add_markers_to_graph(
+        base_fig=fig,
+        dataframe=valid_trades,
+        value_column="close",
+        point_names="Valid Trades Cross Events"
+    )
+    # Add invalid trades
+    fig = display_lib.add_markers_to_graph(
+        base_fig=fig,
+        dataframe=invalid_trades,
+        value_column="close",
+        point_names="Invalid Trades Cross Events"
+    )
     if backtest:
         # Extract trade rows
         trade_dataframe = valid_trades[['time', 'human_time', 'order_type', 'stop_loss', 'stop_price', 'take_profit']]
+        return [trade_dataframe, fig]
+    elif display:
+        display_lib.display_graph(fig, "BTCUSD Raw Graph")
+        return [fig, valid_trades]
     else:
         last_event = order_dataframe.tail(1)
         if last_event['valid'] == True:
             return last_event
         return False
-
-    # Graph if display is true
-    if display:
-        # Update plotting
-        fig = display_lib.construct_base_candlestick_graph(dataframe=cross_event_dataframe, candlestick_title="BTCUSD Raw")
-        # Add ta_ema_15
-        fig = display_lib.add_line_to_graph(
-            base_fig=fig,
-            dataframe=cross_event_dataframe,
-            dataframe_column="ta_ema_15",
-            line_name="EMA 15"
-        )
-        # Add ta_ema_200
-        fig = display_lib.add_line_to_graph(
-            base_fig=fig,
-            dataframe=cross_event_dataframe,
-            dataframe_column="ta_ema_200",
-            line_name="EMA 15"
-        )
-        # Add cross event display
-        fig = display_lib.add_markers_to_graph(
-            base_fig=fig,
-            dataframe=valid_trades,
-            value_column="close",
-            point_names="Valid Trades Cross Events"
-        )
-        # Add invalid trades
-        fig = display_lib.add_markers_to_graph(
-            base_fig=fig,
-            dataframe=invalid_trades,
-            value_column="close",
-            point_names="Invalid Trades Cross Events"
-        )
-        if upload:
-            display_lib.display_graph(fig, "BTCUSD Raw")
-        # Display
-        display_lib.display_graph(fig, "BTCUSD Raw Graph")
-    return trade_dataframe
 
 
 # Determine order type and values
@@ -129,13 +127,13 @@ def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=
     for index, row in cross_events.iterrows():
         if row['crossover'] == True:
             if row['order_type'] == "BUY_STOP":
-                if row['take_profit'] > row['stop_price'] and row['stop_price'] > row['stop_loss']:
+                if row['take_profit'] > row['stop_price'] > row['stop_loss']:
                     valid = True
-                cross_events.loc[index, 'valid'] = valid
+                    cross_events.loc[index, 'valid'] = valid
             elif row['order_type'] == "SELL_STOP":
-                if row['stop_price'] > row['take_profit'] and row['stop_loss'] > row['take_profit']:
+                if row['take_profit'] < row['stop_price'] < row['stop_loss']:
                     valid = True
-                cross_events.loc[index, 'valid'] = valid
+                    cross_events.loc[index, 'valid'] = valid
             else:
                 cross_events.loc[index, 'valid'] = False
 

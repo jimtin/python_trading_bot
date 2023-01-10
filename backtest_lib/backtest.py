@@ -7,18 +7,15 @@ trade_object = {}
 
 # Function to backtest a strategy
 def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, trade_table_name, project_settings,
-             strategy, symbol, comment):
+             strategy, symbol, comment, balance_table, valid_trades_table):
     print("Starting Backtest script")
     # Make sure that SettingWithCopyWarning suppressed
     pandas.options.mode.chained_assignment = None
-    # todo: Save the valid trades into a postgres table
-    # todo: Sort valid_trades_dataframe by time
     # Add status of pending to orders
     valid_trades_dataframe['status'] = "pending"
     valid_trades_dataframe['time_valid'] = valid_trades_dataframe['time'] + time_orders_valid
-    valid_trades_table_name = strategy + comment
     # Save valid trades to postgres
-    sql_interaction.save_dataframe(valid_trades_dataframe, valid_trades_table_name, project_settings)
+    sql_interaction.save_dataframe(valid_trades_dataframe, valid_trades_table, project_settings)
     # Setup open_orders
     open_orders = pandas.DataFrame()
     # Setup open positions
@@ -37,7 +34,9 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
     trade_object["trade_table_name"] = trade_table_name
     trade_object["strategy"] = strategy
     trade_object["symbol"] = symbol
-    # Create the trade table
+    trade_object["comment"] = comment
+    trade_object["balance_tracker_table"] = balance_table
+    # Create the tables
     try:
         sql_interaction.create_mt5_backtest_trade_table(table_name=trade_table_name, project_settings=project_settings)
     except Exception as e:
@@ -47,6 +46,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
         query = f"SELECT * FROM {tick_data_table_name} ORDER BY time_msc;"
         cursor.execute(query)
         tic = time.perf_counter()
+        # Create the initial balance entry
+
         for raw_row in cursor:
             # Turn row into a dictionary
             row = {
@@ -130,7 +131,7 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                 # Check if any open buy positions have reached their STOP_LOSS
                 mask = (open_buy_positions['stop_loss'] >= row['bid'])
                 if len(open_buy_positions[mask]) > 0:
-                    open_buy_positions = buy_take_profit_reached(
+                    open_buy_positions = buy_stop_loss_reached(
                         position_dataframe=open_buy_positions,
                         position=open_buy_positions[mask],
                         row=row,
@@ -176,8 +177,10 @@ def new_order(order_dataframe, new_order, row, project_settings):
         trade_object['current_available_balance'] = trade_object['current_available_balance'] - risk['risk_amount']
         # Add the amount risked to the current equity
         trade_object['current_equity'] = trade_object['current_equity'] + risk['risk_amount']
-        print(f"Order Became valid. Balance: {trade_object['current_available_balance']}, "
-              f"Equity: {trade_object['current_equity']}, Current Profit: {trade_object['current_profit']}")
+        print(f"Order Became valid. "
+              f"Balance: {trade_object['current_available_balance']}, "
+              f"Equity: {trade_object['current_equity']}, Order ID: {order_id}, Order Price: {row['bid']}")
+        # Update SQL table with order
         sql_interaction.insert_order_update(
             update_time=row["time_msc"],
             trade_type=order_details["order_type"],
@@ -187,11 +190,23 @@ def new_order(order_dataframe, new_order, row, project_settings):
             order_id=order_id,
             trade_object=trade_object,
             project_settings=project_settings,
-            status="order"
+            status="order",
+            comment=trade_object["comment"]
+        )
+        # Update SQL balance
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="order_placed",
+            balance=trade_object['current_available_balance'],
+            equity=trade_object['current_equity'],
+            profit_or_loss=0.00,
+            order_id=order_id,
+            time=row['time_msc'],
+            project_settings=project_settings
         )
         new_order['amount_risked'] = risk['risk_amount']
-    # Update status of new_order dataframe
-    new_order['status'] = "order"
+        # Update status of new_order dataframe
+        new_order['status'] = "order"
     # Append to order_dataframe
     order_dataframe = pandas.concat([order_dataframe, new_order])
     return order_dataframe
@@ -203,8 +218,14 @@ def expire_order(order_dataframe, expired_order, row, project_settings):
         order_id = order[0]
         order_details = order[1]
         # Update balance
-        # Todo: Retrieve the order from SQL table
-        print(row)
+        trade_object['current_available_balance'] = trade_object['current_available_balance'] + \
+                                                    order_details['amount_risked']
+        # Update equity
+        trade_object['current_equity'] = trade_object['current_equity'] - order_details['amount_risked']
+        # Update status of expired_order
+        expired_order['status'] = "expired"
+        # Add to SQL
+        # Update SQL table with order
         sql_interaction.insert_order_update(
             update_time=row["time_msc"],
             trade_type=order_details["order_type"],
@@ -214,29 +235,36 @@ def expire_order(order_dataframe, expired_order, row, project_settings):
             order_id=order_id,
             trade_object=trade_object,
             project_settings=project_settings,
-            status="expired"
+            status="order",
+            comment=trade_object["comment"]
         )
-    # Update status of expired_order
-    expired_order['status'] = "expired"
-    # Drop from order_dataframe
+        # Update SQL table with balance update
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="Order expired",
+            balance=trade_object['current_available_balance'],
+            equity=trade_object['current_equity'],
+            profit_or_loss=0.00,
+            order_id=order_id,
+            time=row['time_msc'],
+            project_settings=project_settings
+        )
     updated_order_dataframe = order_dataframe.drop(expired_order.index)
-    print(f"Order expired {expired_order.index} at {row['time_msc']}")
     # Return updated order dataframe
     return updated_order_dataframe
 
 
 # Function to add a new position
 def new_position(position_dataframe, new_position, row, project_settings):
-    # todo: Update SQL Table with outcome
-    # todo: Update volume with quantity purchased
     for position in new_position.iterrows():
         position_id = position[0]
         position_details = position[1]
         print(f"Order {position_id} became a position at price {row['bid']}")
+        volume = position_details['amount_risked'] * trade_object['backtest_settings']['leverage'] / row['bid']
         # No change to balance or equity as already covered in the order
         sql_interaction.insert_new_position(
             trade_type=position_details['order_type'],
-            status="position",
+            status="opened",
             stop_loss=position_details['stop_loss'],
             take_profit=position_details['take_profit'],
             price=row['bid'],
@@ -244,7 +272,7 @@ def new_position(position_dataframe, new_position, row, project_settings):
             trade_object=trade_object,
             update_time=row['time_msc'],
             project_settings=project_settings,
-            qty_purchased=position_details['amount_risked'],
+            qty_purchased=volume,
             entry_price=row['bid']
         )
         # Update status of order
@@ -256,7 +284,6 @@ def new_position(position_dataframe, new_position, row, project_settings):
 
 # Function when a BUY Take Profit Reached
 def buy_take_profit_reached(position_dataframe, position, row, project_settings):
-    # todo: Update SQL Table with outcome
     # Query SQL to find what the most recent price take profit was (make future compatible with trailing stop)
     for pos_tp in position.iterrows():
         last_trade = sql_interaction.retrieve_last_position(
@@ -264,6 +291,7 @@ def buy_take_profit_reached(position_dataframe, position, row, project_settings)
             trade_object=trade_object,
             project_settings=project_settings
         )
+        print(pos_tp)
         # Calculate the volume originally purchased
         vol_purchased = last_trade[0][6] * last_trade[0][7] / last_trade[0][10]
         # Calculate the price sold
@@ -291,8 +319,19 @@ def buy_take_profit_reached(position_dataframe, position, row, project_settings)
             project_settings=project_settings,
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
-            qty_purchased=last_trade[0][6],
+            qty_purchased=vol_purchased,
             trade_stage="position"
+        )
+        # Update the balance
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="Take profit reached",
+            balance=trade_object["current_available_balance"],
+            equity=trade_object["current_equity"],
+            profit_or_loss=outcome,
+            order_id=pos_tp[0],
+            time=row['time_msc'],
+            project_settings=project_settings
         )
         # Update status of position
         position['status'] = "closed"
@@ -316,16 +355,17 @@ def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
         price_sold = vol_purchased * row['bid']
         # Calculate the profit / loss
         outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
-        print(f"BUY Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}")
+        print(f"BUY Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}, "
+              f"Updated Balance: {trade_object['current_available_balance']}. "
+              f"Updated Equity: {trade_object['current_equity']}")
         # Update the available balance with the amount risked
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
         # Remove the equity risked
         trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
-        print(f"Updated Balance: {trade_object['current_available_balance']}. "
-              f"Updated Equity: {trade_object['current_equity']}")
         # Update status of position
         position['status'] = "closed"
+        # Update SQL tracking
         sql_interaction.position_close(
             trade_type=pos_sl[1]['order_type'],
             status="closed",
@@ -338,9 +378,21 @@ def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
             project_settings=project_settings,
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
-            qty_purchased=last_trade[0][6],
+            qty_purchased=vol_purchased,
             trade_stage="position"
         )
+        # Update the balance
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="Stop Loss reached",
+            balance=trade_object["current_available_balance"],
+            equity=trade_object["current_equity"],
+            profit_or_loss=outcome,
+            order_id=pos_sl[0],
+            time=row['time_msc'],
+            project_settings=project_settings
+        )
+
     position_dataframe = position_dataframe.drop(position.index)
     return position_dataframe
 
@@ -361,16 +413,17 @@ def sell_take_profit_reached(position_dataframe, position, row, project_settings
         # Calculate the profit / loss
         outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
         outcome = outcome * -1
-        print(f"Sell Take Profit activated for {pos_tp[0]}. Outcome: {outcome}")
+        print(f"Sell Take Profit activated for {pos_tp[0]}. Outcome: {outcome}. "
+              f"Updated Balance: {trade_object['current_available_balance']}. "
+              f"Updated Equity: {trade_object['current_equity']}")
         # Update the available balance with the amount risked
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
         # Remove the equity risked
         trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
-        print(f"Updated Balance: {trade_object['current_available_balance']}. "
-              f"Updated Equity: {trade_object['current_equity']}")
         # Update status of position
         position['status'] = 'closed'
+        # Update SQL tracking
         sql_interaction.position_close(
             trade_type=pos_tp[1]['order_type'],
             status="closed",
@@ -383,8 +436,19 @@ def sell_take_profit_reached(position_dataframe, position, row, project_settings
             project_settings=project_settings,
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
-            qty_purchased=last_trade[0][6],
+            qty_purchased=vol_purchased,
             trade_stage="position"
+        )
+        # Update the balance
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="Take profit reached",
+            balance=trade_object["current_available_balance"],
+            equity=trade_object["current_equity"],
+            profit_or_loss=outcome,
+            order_id=pos_tp[0],
+            time=row['time_msc'],
+            project_settings=project_settings
         )
 
     position_dataframe = position_dataframe.drop(position.index)
@@ -408,17 +472,17 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
         outcome = price_sold - (last_trade[0][6] * last_trade[0][7])
         # Reverse sign on outcome to account for down direction
         outcome = outcome * -1
-        print(f"SELL Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}.")
+        print(f"SELL Stop Loss activated for {pos_sl[0]}. Outcome: {outcome}."
+              f"Updated Balance: {trade_object['current_available_balance']}. "
+              f"Updated Equity: {trade_object['current_equity']}")
         # Update the available balance with the amount risked
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + outcome
         trade_object['current_available_balance'] = trade_object['current_available_balance'] + last_trade[0][6]
         # Remove the equity risked
         trade_object['current_equity'] = trade_object['current_equity'] - last_trade[0][6]
-        print(f"Updated Balance: {trade_object['current_available_balance']}. "
-              f"Updated Equity: {trade_object['current_equity']}")
         # Update status of position
         position['status'] = 'closed'
-
+        # Update position tracking
         sql_interaction.position_close(
             trade_type=pos_sl[1]['order_type'],
             status="closed",
@@ -431,8 +495,19 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
             project_settings=project_settings,
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
-            qty_purchased=last_trade[0][6],
+            qty_purchased=vol_purchased,
             trade_stage="position"
+        )
+        # Update the balance
+        sql_interaction.insert_balance_change(
+            trade_object=trade_object,
+            note="Stop Loss reached",
+            balance=trade_object["current_available_balance"],
+            equity=trade_object["current_equity"],
+            profit_or_loss=outcome,
+            order_id=pos_sl[0],
+            time=row['time_msc'],
+            project_settings=project_settings
         )
 
     position_dataframe = position_dataframe.drop(position.index)

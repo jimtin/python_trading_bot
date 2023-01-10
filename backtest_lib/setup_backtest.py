@@ -24,9 +24,12 @@ Pseudo Code:
 
 
 # Function to set up the backtester
-def set_up_backtester(strategy_name, strategy_manifest_file, backtest_timeframe, project_settings):
+def set_up_backtester(strategy_name, symbol, candle_timeframe, backtest_timeframe, project_settings, exchange,
+                      candle_table_name, tick_table_name, balance_tracker_table):
     # Create the backtest tables
-    create_backtest_tables(strategy_name=strategy_name, project_settings=project_settings)
+    create_backtest_tables(tick_table_name=tick_table_name,
+                           balance_tracker_table=balance_tracker_table,
+                           project_settings=project_settings)
     # Get the datetime now
     current_datetime = datetime.datetime.now()
     current_datetime = current_datetime.astimezone(datetime.timezone.utc)
@@ -49,40 +52,35 @@ def set_up_backtester(strategy_name, strategy_manifest_file, backtest_timeframe,
     else:
         print("Choose correct value for backtester")
         raise exceptions.BacktestIncorrectBacktestTimeframeError
-    # Retrieve data
-    retrieve_mt5_backtest_data(
-        symbol="BTCUSD.a",
-        strategy=strategy_name,
-        candlesticks=["M30"],
-        start_time_utc=previous_datetime,
-        finish_time_utc=current_datetime,
-        project_settings=project_settings
-    )
+
+    if exchange == "mt5":
+        # Retrieve data
+        retrieve_mt5_backtest_data(
+            symbol=symbol,
+            strategy=strategy_name,
+            candlesticks=candle_timeframe,
+            start_time_utc=previous_datetime,
+            finish_time_utc=current_datetime,
+            project_settings=project_settings,
+            tick_table_name=tick_table_name,
+            candlestick_table_name=candle_table_name
+        )
 
 
 # Create the backtest tables
-def create_backtest_tables(strategy_name, project_settings):
-    # Specify the table names
-    tick_table_name = f"{strategy_name}_mt5_backtest_ticks"
-    candle_table_name = f"{strategy_name}_mt5_backtest_raw_candles"
-    trade_table_name = f"{strategy_name}_mt5_backtest_trade_actions"
+def create_backtest_tables(tick_table_name, balance_tracker_table, project_settings):
     # Create the tick data table
     try:
         sql_interaction.create_mt5_backtest_tick_table(table_name=tick_table_name, project_settings=project_settings)
+        sql_interaction.create_balance_tracker_table(table_name=balance_tracker_table, project_settings=project_settings)
     except Exception as e:
-        print(f"Error creating Tick backtest table. {e}")
-
-    # Create the trade table
-    try:
-        sql_interaction.create_mt5_backtest_trade_table(table_name=trade_table_name, project_settings=project_settings)
-    except Exception as e:
-        print(f"Error creating backtest trade table. {e}")
-
+        print(f"Error creating backtest tables. {e}")
     return True
 
 
 # Retrieve data
-def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks, start_time_utc, finish_time_utc):
+def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks, start_time_utc, finish_time_utc,
+                               tick_table_name, candlestick_table_name):
     # Create the connection object for PostgreSQL
     engine_string = f"postgresql://{project_settings['postgres']['user']}:{project_settings['postgres']['password']}@" \
                     f"{project_settings['postgres']['host']}:{project_settings['postgres']['port']}/" \
@@ -106,8 +104,6 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
         finish_time=finish_time_utc,
         symbol=symbol
     )
-    # Create tick data table name
-    tick_table_name = f"{strategy}_mt5_backtest_ticks"
     # Reorder to match creation
     ticks_data_frame = ticks_data_frame[['symbol', 'time', 'bid', 'ask', 'spread', 'last', 'volume', 'flags',
                                          'volume_real', 'time_msc', 'human_time', 'human_time_msc']]
@@ -126,7 +122,6 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
         # Calculate all indicators
         candlestick_data = calc_all_indicators.all_indicators(candlestick_data)
         # Write to database
-        candlestick_table_name = f"{strategy}_mt5_backtest_raw_candles"
         candlestick_data.to_sql(name=candlestick_table_name, con=engine, if_exists='append')
     return True
 
@@ -179,11 +174,7 @@ def retrieve_mt5_tick_data(start_time, finish_time, symbol):
     ticks_data_frame['time'] = ticks_data_frame['time'].astype('int64')
     ticks_data_frame['volume'] = ticks_data_frame['volume'].astype('int64')
     ticks_data_frame['time_msc'] = ticks_data_frame['time_msc'].astype('int64')
-    # Transform time into a Date object
-    # Todo: Make sure it includes seconds
     ticks_data_frame['human_time'] = pandas.to_datetime(ticks_data_frame['time'], unit='s')
-    # Transform time_msc into a Date object
-    # Todo: Make sure it includes seconds
     ticks_data_frame['human_time_msc'] = pandas.to_datetime(ticks_data_frame['time_msc'], unit='ms')
     return ticks_data_frame
 

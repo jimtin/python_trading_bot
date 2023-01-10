@@ -5,7 +5,7 @@ import pandas
 import display_lib
 from sql_lib import sql_interaction
 from strategies import ema_cross
-from backtest_lib import backtest, setup_backtest
+from backtest_lib import backtest, setup_backtest, backtest_analysis
 
 # Variable for the location of settings.json
 import_filepath = "settings.json"
@@ -74,19 +74,12 @@ if __name__ == '__main__':
     #pandas.set_option('display.max_rows', None)
 
     # Dev code
-    #setup_backtest.set_up_backtester("test_script", "blah", "month", project_settings)
-    #display_lib.show_data("test_script_mt5_backtest_raw_candles", "", "BTC Explorer", project_settings)
-
-    dataframe = sql_interaction.retrieve_dataframe("test_script_mt5_backtest_raw_candles", project_settings)
-    trade_dataframe = ema_cross.ema_cross_strategy(dataframe, display=False, upload=False, project_settings=project_settings)
-    backtest.backtest(
-        valid_trades_dataframe=trade_dataframe,
-        time_orders_valid=1800,
-        tick_data_table_name="test_script_mt5_backtest_ticks",
-        trade_table_name="test_script_mt5_backtest_trade_actions",
+    backtest_analysis.do_backtest(
+        strategy_name="ema_15_200_cross",
+        symbol="USDJPY.a",
+        candle_timeframe=["M30"],
+        test_timeframe="6month",
         project_settings=project_settings,
-        strategy="test_strategy",
-        symbol="BTCUSD.a",
-        comment="initial_strategy"
     )
+
 

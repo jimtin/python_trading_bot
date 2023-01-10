@@ -79,6 +79,39 @@ def create_sql_table(table_name, table_details, project_settings, id=True):
     raise exceptions.SQLTableCreationError
 
 
+# Function to create a balance tracking table
+def create_balance_tracker_table(table_name, project_settings):
+    table_details = "strategy VARCHAR(100) NOT NULL," \
+                    "symbol VARCHAR(100) NOT NULL," \
+                    "comment VARCHAR(100) NOT NULL," \
+                    "note VARCHAR(100) NOT NULL," \
+                    "balance FLOAT4 NOT NULL," \
+                    "equity FLOAT4 NOT NULL," \
+                    "profit_or_loss FLOAT4 NOT NULL," \
+                    "order_id BIGINT NOT NULL," \
+                    "time FLOAT4 NOT NULL"
+    # Pass to Create Table function
+    return create_sql_table(table_name=table_name, table_details=table_details, project_settings=project_settings)
+
+
+# Function to add an entry to balance tracking table
+def insert_balance_change(trade_object, note, balance, equity, profit_or_loss, order_id, time, project_settings):
+    sql_query = f"INSERT INTO {trade_object['balance_tracker_table']} (strategy, symbol, comment, note, balance," \
+                f"equity, profit_or_loss, order_id, time) VALUES (" \
+                f"'{trade_object['strategy']}'," \
+                f"'{trade_object['symbol']}'," \
+                f"'{trade_object['comment']}'," \
+                f"'{note}'," \
+                f"'{balance}'," \
+                f"'{equity}'," \
+                f"'{profit_or_loss}'," \
+                f"'{order_id}'," \
+                f"'{time}'" \
+                f");"
+    # Execute the query
+    return sql_execute(sql_query=sql_query, project_settings=project_settings)
+
+
 # Function to retrieve data from SQL
 def get_data(sql_query, project_settings):
     conn = postgres_connect(project_settings)
@@ -330,7 +363,7 @@ def insert_backtest_update(strategy, exchange, trade_type, trade_stage, symbol, 
 
 # Function to add a new order from backtester
 def insert_order_update(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
-                        project_settings):
+                        project_settings, comment):
     return insert_backtest_update(
         strategy=trade_object["strategy"],
         exchange="testing",
@@ -342,7 +375,7 @@ def insert_order_update(trade_type, status, stop_loss, take_profit, price, order
         stop_loss=stop_loss,
         take_profit=take_profit,
         price=price,
-        comment="backtest",
+        comment=comment,
         status=status,
         order_id=order_id,
         available_balance=trade_object["current_available_balance"],
@@ -411,7 +444,8 @@ def position_close(trade_type, status, stop_loss, take_profit, price, order_id, 
 def retrieve_last_position(order_id, trade_object, project_settings):
     # Create the SQL query
     sql_query = f"SELECT * FROM {trade_object['trade_table_name']} WHERE symbol='{trade_object['symbol']}' AND " \
-                f"strategy='{trade_object['strategy']}' AND order_id='{order_id}' ORDER BY id DESC LIMIT 1;"
+                f"strategy='{trade_object['strategy']}' AND trade_stage='position' AND order_id='{order_id}' ORDER BY " \
+                f"id DESC LIMIT 1;"
     # Execute the SQL Query
     return get_data(sql_query, project_settings)
 
@@ -426,3 +460,17 @@ def save_dataframe(dataframe, table_name, project_settings):
     # Save
     dataframe.to_sql(table_name, engine, if_exists='append')
 
+
+# Function to retrieve the unique orders id's for a strategy
+def retrieve_unique_order_id(trade_object, project_settings):
+    sql_query = f"SELECT DISTINCT order_id FROM {trade_object['trade_table_name']} WHERE " \
+                f"strategy='{trade_object['strategy']}' and trade_stage='position';"
+    # Execute the Query
+    return get_data(sql_query, project_settings)
+
+
+# Function to retrieve all entries for an order id
+def retrieve_trade_details(order_id, trade_object, project_settings):
+    sql_query = f"SELECT * from {trade_object['trade_table_name']} WHERE strategy='{trade_object['strategy']}' " \
+                f"and trade_stage='position' and order_id='{order_id}';"
+    return get_data(sql_query, project_settings)
