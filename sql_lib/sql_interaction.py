@@ -389,7 +389,7 @@ def insert_order_update(trade_type, status, stop_loss, take_profit, price, order
 
 
 def insert_new_position(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
-                        project_settings, qty_purchased, entry_price):
+                        project_settings, qty_purchased, entry_price, comment):
     return insert_backtest_update(
         strategy=trade_object["strategy"],
         exchange="testing",
@@ -401,7 +401,7 @@ def insert_new_position(trade_type, status, stop_loss, take_profit, price, order
         stop_loss=stop_loss,
         take_profit=take_profit,
         price=price,
-        comment="backtest",
+        comment=comment,
         status=status,
         order_id=order_id,
         available_balance=trade_object["current_available_balance"],
@@ -415,7 +415,7 @@ def insert_new_position(trade_type, status, stop_loss, take_profit, price, order
 
 
 def position_close(trade_type, status, stop_loss, take_profit, price, order_id, trade_object, update_time,
-                           project_settings, qty_purchased, trade_stage, entry_price, exit_price):
+                           project_settings, qty_purchased, trade_stage, entry_price, exit_price, comment):
     return insert_backtest_update(
         strategy=trade_object["strategy"],
         exchange="testing",
@@ -427,7 +427,7 @@ def position_close(trade_type, status, stop_loss, take_profit, price, order_id, 
         stop_loss=stop_loss,
         take_profit=take_profit,
         price=price,
-        comment="backtest",
+        comment=comment,
         status=status,
         order_id=order_id,
         available_balance=trade_object["current_available_balance"],
@@ -462,17 +462,17 @@ def save_dataframe(dataframe, table_name, project_settings):
 
 
 # Function to retrieve the unique orders id's for a strategy
-def retrieve_unique_order_id(trade_object, project_settings):
+def retrieve_unique_order_id(trade_object, comment, project_settings):
     sql_query = f"SELECT DISTINCT order_id FROM {trade_object['trade_table_name']} WHERE " \
-                f"strategy='{trade_object['strategy']}' and trade_stage='position';"
+                f"strategy='{trade_object['strategy']}' and comment='{comment}';"
     # Execute the Query
     return get_data(sql_query, project_settings)
 
 
 # Function to retrieve all entries for an order id
-def retrieve_trade_details(order_id, trade_object, project_settings):
+def retrieve_trade_details(order_id, trade_object, comment, project_settings):
     sql_query = f"SELECT * from {trade_object['trade_table_name']} WHERE strategy='{trade_object['strategy']}' " \
-                f"and trade_stage='position' and order_id='{order_id}';"
+                f"and comment='{comment}' and order_id='{order_id}';"
     return get_data(sql_query, project_settings)
 
 
@@ -480,3 +480,15 @@ def retrieve_trade_details(order_id, trade_object, project_settings):
 def retrieve_last_tick(tick_table_name, project_settings):
     sql_query = f"SELECT * from {tick_table_name} ORDER BY time_msc DESC LIMIT 1;"
     return get_data(sql_query, project_settings)
+
+
+# Function to create a summary table
+def create_summary_table(project_settings):
+    table_details = "strategy VARCHAR(100) NOT NULL," \
+                    "comment VARCHAR(100) NOT NULL," \
+                    "strategy_detail JSONB NOT NULL," \
+                    "wins BIGINT NOT NULL," \
+                    "losses BIGINT NOT NULL," \
+                    "profit BIGINT NOT NULL," \
+                    "not_completed BIGINT NOT NULL"
+    return create_sql_table("strategy_testing_outcomes", table_details, project_settings, id=True)

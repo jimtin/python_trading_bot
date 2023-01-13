@@ -8,7 +8,7 @@ from backtest_lib import backtest_analysis
 
 
 # Main display function
-def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upload=False):
+def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upload=False, show=False):
     # Determine EMA Cross Events for EMA 15 and EMA 200
     print("Calculating cross events for EMA 15 and EMA 200")
     ema_one = "ta_ema_15"
@@ -46,7 +46,7 @@ def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upl
         base_fig=fig,
         dataframe=cross_event_dataframe,
         dataframe_column="ta_ema_200",
-        line_name="EMA 15"
+        line_name="EMA 200"
     )
     # Add cross event display
     fig = display_lib.add_markers_to_graph(
@@ -65,10 +65,13 @@ def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upl
     if backtest:
         # Extract trade rows
         trade_dataframe = valid_trades[['time', 'human_time', 'order_type', 'stop_loss', 'stop_price', 'take_profit']]
-        return [trade_dataframe, fig]
+        return trade_dataframe
     elif display:
+        return fig
+    elif show:
         display_lib.display_graph(fig, "BTCUSD Raw Graph")
-        return [fig, valid_trades]
+        trade_dataframe = valid_trades[['time', 'human_time', 'order_type', 'stop_loss', 'stop_price', 'take_profit']]
+        return trade_dataframe
     else:
         last_event = order_dataframe.tail(1)
         if last_event['valid'] == True:

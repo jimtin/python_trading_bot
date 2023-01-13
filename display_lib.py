@@ -54,19 +54,20 @@ def show_data(table_name, dataframe, graph_name, project_settings):
 
 
 # Function to display a plotly graph in dash
-def display_graph(plotly_fig, graph_title, project_settings=[], dash=False, upload=False):
+def display_graph(plotly_fig, graph_title, dash=False, upload=False):
     """
     Function to display a plotly graph using Dash
     :param plotly_fig: plotly figure
     :param graph_title: string
     :return: None
     """
-    # Add in autoscaling
+    # Add in autoscaling for each plotly figure
     plotly_fig.update_layout(
-        autosize=True,
-        height=1000
+        autosize=True
     )
     plotly_fig.update_yaxes(automargin=True)
+    plotly_fig.update_layout(xaxis_rangeslider_visible=False)
+
 
     if dash:
         # Create the Dash object
@@ -82,14 +83,44 @@ def display_graph(plotly_fig, graph_title, project_settings=[], dash=False, uplo
         ])
         # Run the image
         app.run_server(debug=True)
-    elif upload:
-        chart_studio.tools.set_credentials_file(
-            username=project_settings['plotly']['username'],
-            api_key=project_settings['plotly']['api_key']
-        )
-        chart_studio.plotly.plot(plotly_fig,file_name="Test", auto_open=True)
     else:
         plotly_fig.show()
+
+
+# Function to display a backtest
+def display_backtest(original_strategy, strategy_with_trades, table, graph_title):
+    original_strategy.update_layout(
+        autosize=True
+    )
+    original_strategy.update_yaxes(automargin=True)
+    original_strategy.update_layout(xaxis_rangeslider_visible=False)
+    # Create a Dash Object
+    app = Dash(__name__)
+
+    # Construct view
+    app.layout = html.Div(children=[
+        html.H1(graph_title),
+        html.Div([
+            html.H1(children="Strategy With Trades"),
+            html.Div(children='''Original Strategy'''),
+            dcc.Graph(
+                id="strat_with_trades",
+                figure=strategy_with_trades,
+                style={'height': '100vh'}
+            )
+        ]),
+        html.Div([
+            html.H1(children="Table of Trades"),
+            html.Div(children='''Original Strategy'''),
+            dcc.Graph(
+                id="table_trades",
+                figure=table
+            )
+        ])
+    ])
+
+    app.run_server(debug=True)
+
 
 
 # Function to construct base candlestick graph
@@ -154,46 +185,49 @@ def add_markers_to_graph(base_fig, dataframe, value_column, point_names):
      return base_fig
 
 
+# Function to turn a dataframe into a table
+def add_dataframe(dataframe):
+    fig = go.Figure(data=[go.Table(
+            header=dict(values=["Time", "Order Type", "Stop Price", "Stop Loss", "Take Profit"], align='left'),
+            cells=dict(values=[
+                dataframe['human_time'],
+                dataframe['order_type'],
+                dataframe['stop_price'],
+                dataframe['stop_loss'],
+                dataframe['take_profit']
+            ])
+        )]
+    )
+    return fig
+
+
 # Function to add trades to graph
-def add_trades_to_graph(trades, base_fig=None, display_on_base=True):
+def add_trades_to_graph(trades_dict, base_fig):
     # Create a point plot list
     point_plot = []
     # Create the colors
     buy_color = dict(color="green")
     sell_color = dict(color="red")
     # Add each set of trades
+    trades = trades_dict["full_trades"]
     for trade in trades:
-        if trade['trade_type'] == "BUY_STOP":
-            color = buy_color
-        else:
-            color = sell_color
-        point_plot.append(
-            go.Scatter(
-                x=[trade['open_time'], trade['close_time']],
-                y=[trade['open_price'], trade['close_price']],
-                name=trade['name'],
-                legendgroup=trade['trade_type'],
-                line=color
+        if trade['trade_outcome']['not_completed'] is False:
+            if trade['trade_type'] == "BUY_STOP":
+                color = buy_color
+            else:
+                color = sell_color
+
+            base_fig.add_trace(
+                go.Scatter(
+                    x=[trade['order_time'], trade['open_time'], trade['close_time']],
+                    y=[trade['order_price'], trade['open_price'], trade['close_price']],
+                    name=trade['name'],
+                    legendgroup=trade['trade_type'],
+                    line=color
+                )
             )
-        )
-    if display_on_base:
-        if not base_fig:
-            base_fig.add_trace(point_plot)
-            return base_fig
-        else:
-            raise ValueError("Base Fig cannot be null for display on base selection")
-    else:
-        trade_fig = go.Figure(data=point_plot)
-        return trade_fig
+    return base_fig
 
 
-def backtest_display(prices, trades, balance, title):
-    # Construct the graph with subplots
-    fig = plotly.subplots.make_subplots(rows=3, cols=1)
-    # Add the base graph
-    fig.add_trace(prices, row=1, col=1)
-    # Add Trades separately
-    fig.add_trace(trades, row=2, col=1)
-    # Display
-    display_graph(fig, title, dash=True)
+# Function to add a table of the strategy outcomes to Plotly
 

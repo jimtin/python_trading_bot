@@ -80,8 +80,9 @@ if __name__ == '__main__':
         candle_timeframe=["M30"],
         test_timeframe="month",
         project_settings=project_settings,
-        get_data=True,
-        analyze=True
+        get_data=False,
+        full_analysis=False,
+        display=True
     )
 
 

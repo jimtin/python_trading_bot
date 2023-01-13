@@ -101,7 +101,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_buy_positions,
                         new_position=open_orders[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
                     # Drop from open orders as now a position
                     open_orders = open_orders.drop(open_orders[mask].index)
@@ -113,7 +114,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_sell_positions,
                         new_position=open_orders[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
                     open_orders = open_orders.drop(open_orders[mask].index)
             # Step 3: Check open positions to check their progress
@@ -126,7 +128,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_buy_positions,
                         position=open_buy_positions[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
                 # Check if any open buy positions have reached their STOP_LOSS
                 mask = (open_buy_positions['stop_loss'] >= row['bid'])
@@ -135,7 +138,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_buy_positions,
                         position=open_buy_positions[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
             # Check open sell positions
             if len(open_sell_positions) > 0:
@@ -146,7 +150,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_sell_positions,
                         position=open_sell_positions[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
                 # Check if any open sell positions have reached a stop loss
                 mask = (open_sell_positions['stop_loss'] <= row['bid'])
@@ -155,7 +160,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
                         position_dataframe=open_sell_positions,
                         position=open_sell_positions[mask],
                         row=row,
-                        project_settings=project_settings
+                        project_settings=project_settings,
+                        comment=comment
                     )
         # Return the totals back
         total_value = trade_object['current_available_balance'] + trade_object['current_equity']
@@ -171,7 +177,8 @@ def backtest(valid_trades_dataframe, time_orders_valid, tick_data_table_name, tr
             open_buy_positions=open_buy_positions,
             open_sell_positions=open_sell_positions,
             update_time=close_time,
-            project_settings=project_settings
+            project_settings=project_settings,
+            comment=comment
         )
         print(f"Total value at conclusion of test: {total_value}. Breakdown: "
               f"Balance: {trade_object['current_available_balance']}, Equity: {trade_object['current_equity']}")
@@ -272,7 +279,7 @@ def expire_order(order_dataframe, expired_order, row, project_settings):
 
 
 # Function to add a new position
-def new_position(position_dataframe, new_position, row, project_settings):
+def new_position(position_dataframe, new_position, row, comment, project_settings):
     for position in new_position.iterrows():
         position_id = position[0]
         position_details = position[1]
@@ -290,7 +297,8 @@ def new_position(position_dataframe, new_position, row, project_settings):
             update_time=row['time_msc'],
             project_settings=project_settings,
             qty_purchased=volume,
-            entry_price=row['bid']
+            entry_price=row['bid'],
+            comment=comment
         )
         # Update status of order
         new_position['status'] = "position"
@@ -300,7 +308,7 @@ def new_position(position_dataframe, new_position, row, project_settings):
 
 
 # Function when a BUY Take Profit Reached
-def buy_take_profit_reached(position_dataframe, position, row, project_settings):
+def buy_take_profit_reached(position_dataframe, position, row, comment, project_settings):
     # Query SQL to find what the most recent price take profit was (make future compatible with trailing stop)
     for pos_tp in position.iterrows():
         last_trade = sql_interaction.retrieve_last_position(
@@ -338,7 +346,8 @@ def buy_take_profit_reached(position_dataframe, position, row, project_settings)
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
             qty_purchased=vol_purchased,
-            trade_stage="position"
+            trade_stage="position",
+            comment=comment
         )
         # Update the balance
         sql_interaction.insert_balance_change(
@@ -359,7 +368,7 @@ def buy_take_profit_reached(position_dataframe, position, row, project_settings)
 
 
 # Function when a BUY Stop Loss reached
-def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
+def buy_stop_loss_reached(position_dataframe, position, row, comment, project_settings):
     # todo: Update SQL Table with outcome
     for pos_sl in position.iterrows():
         last_trade = sql_interaction.retrieve_last_position(
@@ -400,7 +409,8 @@ def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
             qty_purchased=vol_purchased,
-            trade_stage="position"
+            trade_stage="position",
+            comment=comment
         )
         # Update the balance
         sql_interaction.insert_balance_change(
@@ -419,7 +429,7 @@ def buy_stop_loss_reached(position_dataframe, position, row, project_settings):
 
 
 # Function when a SELL Take Profit reached
-def sell_take_profit_reached(position_dataframe, position, row, project_settings):
+def sell_take_profit_reached(position_dataframe, position, row, comment, project_settings):
     # todo: Update SQL Table with outcome
     for pos_tp in position.iterrows():
         last_trade = sql_interaction.retrieve_last_position(
@@ -459,7 +469,8 @@ def sell_take_profit_reached(position_dataframe, position, row, project_settings
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
             qty_purchased=vol_purchased,
-            trade_stage="position"
+            trade_stage="position",
+            comment=comment
         )
         # Update the balance
         sql_interaction.insert_balance_change(
@@ -478,7 +489,7 @@ def sell_take_profit_reached(position_dataframe, position, row, project_settings
 
 
 # Function when a SELL Stop Loss reached
-def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
+def sell_stop_loss_reached(position_dataframe, position, row, comment, project_settings):
     # todo: Update SQL Table with outcome
     for pos_sl in position.iterrows():
         last_trade = sql_interaction.retrieve_last_position(
@@ -519,7 +530,8 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
             entry_price=last_trade[0][17],
             exit_price=row['bid'],
             qty_purchased=vol_purchased,
-            trade_stage="position"
+            trade_stage="position",
+            comment=comment
         )
         # Update the balance
         sql_interaction.insert_balance_change(
@@ -538,7 +550,7 @@ def sell_stop_loss_reached(position_dataframe, position, row, project_settings):
 
 
 # Function to close open orders at conclusion of testing
-def close_open_positions(open_buy_positions, open_sell_positions, update_time, project_settings):
+def close_open_positions(open_buy_positions, open_sell_positions, update_time, project_settings, comment):
     # Close any open buy positions
     if len(open_buy_positions) > 0:
         for row in open_buy_positions.iterrows():
@@ -564,7 +576,8 @@ def close_open_positions(open_buy_positions, open_sell_positions, update_time, p
                 entry_price=last_trade[0][17],
                 exit_price=last_trade[0][17],
                 qty_purchased=last_trade[0][6],
-                trade_stage="position"
+                trade_stage="position",
+                comment=comment
             )
     # Close any open sell positions
     if len(open_sell_positions) > 0:
@@ -591,7 +604,8 @@ def close_open_positions(open_buy_positions, open_sell_positions, update_time, p
                 entry_price=last_trade[0][17],
                 exit_price=last_trade[0][17],
                 qty_purchased=last_trade[0][6],
-                trade_stage="position"
+                trade_stage="position",
+                comment=comment
             )
 
 

@@ -1,4 +1,4 @@
-from indicators import ta_sma, ta_ema, two_crows, three_black_crows
+from indicators import ta_sma, ta_ema, two_crows, three_black_crows, bollinger_bands
 
 # Calculate all the indicators currently available
 def all_indicators(dataframe):
@@ -20,4 +20,6 @@ def all_indicators(dataframe):
     # 2 Crows
     dataframe = two_crows.calc_two_crows(dataframe)
     dataframe = three_black_crows.calc_three_black_crows(dataframe)
+    # Overlap Studies
+    #dataframe = bollinger_bands.calc_bollinger_bands(dataframe, 20, 2, 2, 0)
     return dataframe
