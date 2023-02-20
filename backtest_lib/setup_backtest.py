@@ -11,7 +11,7 @@ import datetime
 from sqlalchemy import create_engine
 from dateutil.relativedelta import relativedelta
 import os
-from indicators import calc_all_indicators
+from indicator_lib import calc_all_indicators
 
 
 """
@@ -122,7 +122,7 @@ def retrieve_mt5_backtest_data(symbol, strategy, project_settings, candlesticks,
             timeframe=candle,
             symbol=symbol
         )
-        # Calculate all indicators
+        # Calculate all indicator_lib
         candlestick_data = calc_all_indicators.all_indicators(candlestick_data)
         # Write to database
         candlestick_data.to_sql(name=candlestick_table_name, con=engine, if_exists='append')

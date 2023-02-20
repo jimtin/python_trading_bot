@@ -1,5 +1,5 @@
-# Python Trading Bot
-The Python Trading Bot is an open source algorithmic trading bot you can use to trade FOREX / Crypto / Futures on exchanges.
+# AlgoQuant.Trade AutoTrading Bot
+The AlgoQuant.Trade Trading Bot is an open source algorithmic trading bot you can use to trade FOREX / Crypto / Futures on exchanges.
 
 It is designed to be used in partnership with the series [Build Your Own Algorithmic Trading Bot](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e) being published on Medium.
 

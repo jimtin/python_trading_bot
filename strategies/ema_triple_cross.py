@@ -2,7 +2,7 @@
 Assumptions:
 1. All strategy is performed on an existing dataframe. Previous inputs define how dataframe is retrieved/created
 '''
-from indicators import ema_cross
+from indicator_lib import ema_cross
 import display_lib
 from backtest_lib import backtest_analysis
 

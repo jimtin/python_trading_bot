@@ -6,9 +6,15 @@ import display_lib
 from sql_lib import sql_interaction
 from strategies import ema_cross
 from backtest_lib import backtest, setup_backtest, backtest_analysis
+import argparse
+from indicator_lib import calc_all_indicators, doji_star
 
 # Variable for the location of settings.json
 import_filepath = "settings.json"
+
+# Global settings
+global exchange
+global explore
 
 
 # Function to import settings from settings.json
@@ -63,6 +69,140 @@ def check_exchanges(project_settings):
     return True
 
 
+# Function to add arguments to script
+def add_arguments(parser):
+    """
+    Function to add arguments to the parser
+    :param parser: parser object
+    :return: updated parser object
+    """
+    # Add Options
+    # Explore Option
+    parser.add_argument(
+        "-e",
+        "--Explore",
+        help="Use this to explore the data",
+        action="store_true"
+    )
+    # Display Option
+    parser.add_argument(
+        "-d",
+        "--Display",
+        help="Use this to display the data",
+        action="store_true"
+    )
+    # All Indicators Option
+    parser.add_argument(
+        "-a",
+        "--all_indicators",
+        help="Select all indicator_lib",
+        action="store_true"
+    )
+    # Doji Star Option
+    parser.add_argument(
+        "--doji_star",
+        help="Select doji star indicator to be calculated",
+        action="store_true"
+    )
+
+    # Add Arguments
+    parser.add_argument(
+        "-x",
+        "--Exchange",
+        help="Set which exchange you will be using"
+    )
+    # Custom Symbol
+    parser.add_argument(
+        "--symbol",
+        help="Use this to use a custom symbol with the Explore option"
+    )
+    # Custom Timeframe
+    parser.add_argument(
+        "-t",
+        "--timeframe",
+        help="Select a timeframe to explore data"
+    )
+    return parser
+
+
+# Function to parse provided options
+def parse_arguments(args_parser_variable):
+    """
+    Function to parse provided arguments and improve from there
+    :param args_parser_variable:
+    :return: True when completed
+    """
+
+
+    # Check if data exploration selected
+    if args_parser_variable.Explore:
+        print("Data exploration selected")
+        # Check for exchange
+        if args_parser_variable.Exchange:
+            if args_parser_variable.Exchange == "metatrader":
+                global exchange
+                exchange = "mt5"
+            print(f"Exchange selected: {exchange}")
+            # Check for Timeframe
+            if args_parser_variable.timeframe:
+                print(f"Timeframe selected: {args_parser_variable.timeframe}")
+            else:
+                print("No timeframe selected")
+                raise SystemExit(1)
+            # Check for Symbol
+            if args_parser_variable.symbol:
+                print(f"Symbol selected: {args_parser_variable.symbol}")
+            else:
+                print("No symbol selected")
+                raise SystemExit(1)
+            return True
+        else:
+            print("No exchange selected")
+            raise SystemExit(1)
+
+    return False
+
+
+# Function to manage data exploration
+def manage_exploration(args):
+    """
+    Function to manage data exploration when --Explore option selected
+    :param args: system arguments
+    :return: dataframe
+    """
+    if exchange == "mt5":
+        # Retreive a large amount of data
+        data = mt5_interaction.query_historic_data(
+            symbol=args.symbol,
+            timeframe=args.timeframe,
+            number_of_candles=50000
+        )
+        # Convert to a dataframe
+        data = pandas.DataFrame(data)
+        # Retrieve whatever indicator_lib have been selected
+        # If all indicators selected, calculate all of them
+        if args.all_indicators:
+            print(f"All indicators selected. Calculation may take some time")
+            indicator_dataframe = calc_all_indicators.all_indicators(
+                dataframe=data
+            )
+        else:
+            # Check for doji_star
+            if args.doji_star:
+                print(f"Doji Star selected")
+                indicator_dataframe = doji_star.doji_star(
+                    dataframe=data
+                )
+
+    else:
+        print("No exchange selected")
+        raise SystemExit(1)
+    print(indicator_dataframe)
+
+
+
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Import project settings
@@ -72,17 +212,18 @@ if __name__ == '__main__':
     # Show all columns pandas
     pandas.set_option('display.max_columns', None)
     #pandas.set_option('display.max_rows', None)
+    # Setup arguments to the script
+    parser = argparse.ArgumentParser()
+    # Update with options
+    parser = add_arguments(parser=parser)
+    # Get the arguments
+    args = parser.parse_args()
+    explore = parse_arguments(args_parser_variable=args)
+    # Branch based upon options
+    if explore:
+        manage_exploration(args=args)
+    else:
+        print("Settings File in use")
 
-    # Dev code
-    backtest_analysis.do_backtest(
-        strategy_name="ema_15_200_cross",
-        symbol="USDJPY.a",
-        candle_timeframe=["M30"],
-        test_timeframe="month",
-        project_settings=project_settings,
-        get_data=False,
-        full_analysis=False,
-        display=True
-    )
 
 
