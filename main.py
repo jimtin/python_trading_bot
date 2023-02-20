@@ -8,6 +8,7 @@ from strategies import ema_cross
 from backtest_lib import backtest, setup_backtest, backtest_analysis
 import argparse
 from indicator_lib import calc_all_indicators, doji_star
+import datetime
 
 # Variable for the location of settings.json
 import_filepath = "settings.json"
@@ -187,12 +188,40 @@ def manage_exploration(args):
                 dataframe=data
             )
         else:
+            # If display is true, construct the base figure
+            if args.Display:
+                # Add a column 'human_time' to the dataframe which converts the unix time to human readable
+                data['human_time'] = data['time'].apply(lambda x: datetime.datetime.fromtimestamp(x).strftime('%Y-%m-%d %H:%M:%S'))
+                fig = display_lib.construct_base_candlestick_graph(
+                    dataframe=data,
+                    candlestick_title=f"{args.symbol} {args.timeframe} Data Explorer"
+                )
             # Check for doji_star
-            if args.doji_star:
+            if args.doji_star and args.Display:
+                print(f"Doji Star selected with display")
+                indicator_dataframe = doji_star.doji_star(
+                    dataframe=data,
+                    display=True,
+                    fig=fig
+                )
+            elif args.doji_star:
                 print(f"Doji Star selected")
                 indicator_dataframe = doji_star.doji_star(
                     dataframe=data
                 )
+
+            # If display is true, once all indicators have been calculated, display the figure
+            if args.Display:
+                print("Displaying data")
+                display_lib.display_graph(
+                    plotly_fig=fig,
+                    graph_title=f"{args.symbol} {args.timeframe} Data Explorer",
+                    dash=False
+                )
+
+            # Once all indicators have been calculated, return the dataframe
+            return indicator_dataframe
+
 
     else:
         print("No exchange selected")
