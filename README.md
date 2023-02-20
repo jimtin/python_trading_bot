@@ -8,7 +8,18 @@ The code is covered by the MIT 2.0 Open Source licence. Code developed by [James
 **All trading is at your own risk :)**
 
 ## Published Content
+### Introduction
 1. [Introduction](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)
+
+### How to Install TALib
+1. Windows: [5 Easy Steps to Add TA-Lib to Your Python Trading Bot on Windows](https://medium.com/@appnologyjames/5-easy-steps-to-add-ta-lib-to-your-python-trading-bot-on-windows-16f82fb07788)
+
+### YouTube
+Our YouTube channel [algoquant_trade](https://www.youtube.com/@algoquant_trade) contains tons of helpful content on how
+to use the AutoTrading Bot or build one for yourself. Check out these episodes:
+1. [Secure Setup](https://www.youtube.com/watch?v=jpw3JltNMg0)
+2. [Connect To MetaTrader 5 with Python](https://www.youtube.com/watch?v=EkP7iAZoMEw&t=2s)
+3. [Retrieve 50000 Candlesticks from MetaTrader](https://www.youtube.com/watch?v=KZmVek6EDCg)
 
 ### MetaTrader 5
 1. [Everything You Need to Connect Your Python Trading Bot to MetaTrader 5](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)
@@ -74,12 +85,6 @@ The code is covered by the MIT 2.0 Open Source licence. Code developed by [James
 3. Moving Average Strategy
 4. Reversal Candle Strategy
 5. Moving Average Cross Strategy
-
-### Creative Appnologies
-1. Retrieving Trading Signals
-2. Retrieving Indicators
-3. Retrieving Multi-Pair Indicators
-4. Monitoring Discord
 
 ### Sharing
 1. Sharing on Twitter

@@ -171,7 +171,7 @@ def manage_exploration(args):
     :param args: system arguments
     :return: dataframe
     """
-    if exchange == "mt5":
+    if args.Exchange == "metatrader":
         # Retreive a large amount of data
         data = mt5_interaction.query_historic_data(
             symbol=args.symbol,
@@ -187,6 +187,7 @@ def manage_exploration(args):
             indicator_dataframe = calc_all_indicators.all_indicators(
                 dataframe=data
             )
+            return indicator_dataframe
         else:
             # If display is true, construct the base figure
             if args.Display:
@@ -196,6 +197,7 @@ def manage_exploration(args):
                     dataframe=data,
                     candlestick_title=f"{args.symbol} {args.timeframe} Data Explorer"
                 )
+
             # Check for doji_star
             if args.doji_star and args.Display:
                 print(f"Doji Star selected with display")
@@ -220,16 +222,12 @@ def manage_exploration(args):
                 )
 
             # Once all indicators have been calculated, return the dataframe
-            return indicator_dataframe
+        return indicator_dataframe
 
 
     else:
         print("No exchange selected")
         raise SystemExit(1)
-    print(indicator_dataframe)
-
-
-
 
 
 # Press the green button in the gutter to run the script.
@@ -252,7 +250,8 @@ if __name__ == '__main__':
     if explore:
         manage_exploration(args=args)
     else:
-        print("Settings File in use")
+        data = manage_exploration(args=args)
+        print(data)
 
 
 
