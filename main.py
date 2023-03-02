@@ -7,7 +7,7 @@ from sql_lib import sql_interaction
 from strategies import ema_cross
 from backtest_lib import backtest, setup_backtest, backtest_analysis
 import argparse
-from indicator_lib import calc_all_indicators, doji_star
+from indicator_lib import calc_all_indicators, doji_star, rsi
 import datetime
 
 # Variable for the location of settings.json
@@ -22,7 +22,7 @@ global explore
 def get_project_settings(import_filepath):
     """
     Function to import settings from settings.json
-    :param import_filepath:
+    :param import_filepath: string to the location of settings.json
     :return: JSON object with project settings
     """
     # Test the filepath to sure it exists
@@ -105,6 +105,12 @@ def add_arguments(parser):
         help="Select doji star indicator to be calculated",
         action="store_true"
     )
+    # RSI Option
+    parser.add_argument(
+        "--rsi",
+        help="Select RSI indicator to be calculated",
+        action="store_true"
+    )
 
     # Add Arguments
     parser.add_argument(
@@ -176,7 +182,7 @@ def manage_exploration(args):
         data = mt5_interaction.query_historic_data(
             symbol=args.symbol,
             timeframe=args.timeframe,
-            number_of_candles=50000
+            number_of_candles=1000
         )
         # Convert to a dataframe
         data = pandas.DataFrame(data)
@@ -197,20 +203,35 @@ def manage_exploration(args):
                     dataframe=data,
                     candlestick_title=f"{args.symbol} {args.timeframe} Data Explorer"
                 )
-
-            # Check for doji_star
-            if args.doji_star and args.Display:
-                print(f"Doji Star selected with display")
-                indicator_dataframe = doji_star.doji_star(
-                    dataframe=data,
-                    display=True,
-                    fig=fig
-                )
-            elif args.doji_star:
-                print(f"Doji Star selected")
-                indicator_dataframe = doji_star.doji_star(
-                    dataframe=data
-                )
+                # Check for doji_star
+                if args.doji_star and args.Display:
+                    print(f"Doji Star selected with display")
+                    indicator_dataframe = doji_star.doji_star(
+                        dataframe=data,
+                        display=True,
+                        fig=fig
+                    )
+                # Check for RSI
+                if args.rsi:
+                    print(f"RSI selected")
+                    indicator_dataframe = rsi.rsi(
+                        dataframe=data,
+                        display=True,
+                        fig=fig
+                    )
+            else:
+                # Check for doji_star
+                if args.doji_star:
+                    print(f"Doji Star selected")
+                    indicator_dataframe = doji_star.doji_star(
+                        dataframe=data
+                    )
+                # Check for RSI
+                if args.rsi:
+                    print(f"RSI selected")
+                    indicator_dataframe = rsi.rsi(
+                        dataframe=data
+                    )
 
             # If display is true, once all indicators have been calculated, display the figure
             if args.Display:

@@ -20,6 +20,10 @@ to use the AutoTrading Bot or build one for yourself. Check out these episodes:
 1. [Secure Setup](https://www.youtube.com/watch?v=jpw3JltNMg0)
 2. [Connect To MetaTrader 5 with Python](https://www.youtube.com/watch?v=EkP7iAZoMEw&t=2s)
 3. [Retrieve 50000 Candlesticks from MetaTrader](https://www.youtube.com/watch?v=KZmVek6EDCg)
+4. [Add the EMA Indicator to Your Algorithmic AutoTrading Bot](https://youtu.be/QqLjXecrKhc)
+5. [How to Install TALib on Windows](https://youtu.be/jnxqu9MhBIE)
+6. [Build Your Own AutoTrading Bot EMA Cross Detector](https://youtu.be/lbdO_UKEzQU)
+7. [How to Trade the EMA Cross Strategy with Your AutoTrading Bot](https://youtu.be/A6RTl0_13pw)
 
 ### MetaTrader 5
 1. [Everything You Need to Connect Your Python Trading Bot to MetaTrader 5](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)

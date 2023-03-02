@@ -4,7 +4,10 @@ import display_lib
 def doji_star(dataframe, display=False, fig=None):
     """
     Function to calculate the doji star indicator. This is a candlestick pattern, more details can be found here:
+    https://medium.com/me/stats/post/28c12f04caf6
     :param data: dataframe object where the Doji Star patterns should be detected on
+    :param display: boolean to determine whether the Doji Star patterns should be displayed on the graph
+    :param fig: plotly figure object to add the Doji Star patterns to
     :return: dataframe with Doji Star patterns identified
     """
     # Copy the dataframe

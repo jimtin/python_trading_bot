@@ -11,8 +11,6 @@ def query_binance_status():
     else:
         raise False
 
-from binance.spot import Spot
-
 
 # Function to query Binance account
 def query_account(api_key, secret_key):

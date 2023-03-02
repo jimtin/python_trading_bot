@@ -1,4 +1,4 @@
-from indicator_lib import doji_star, ta_sma, ta_ema, two_crows, three_black_crows, bollinger_bands
+from indicator_lib import doji_star, rsi, ta_sma, ta_ema, two_crows, three_black_crows, bollinger_bands
 
 # Calculate all the indicator_lib currently available
 def all_indicators(dataframe):
@@ -21,8 +21,12 @@ def all_indicators(dataframe):
     # Patterns
     # 2 Crows
     dataframe_copy = two_crows.calc_two_crows(dataframe_copy)
+    # Three black crows
     dataframe_copy = three_black_crows.calc_three_black_crows(dataframe_copy)
+    # Doji Star
     dataframe_copy = doji_star.doji_star(dataframe_copy)
+    # RSI
+    dataframe_copy = rsi.rsi(dataframe_copy)
     # Overlap Studies
     #dataframe = bollinger_bands.calc_bollinger_bands(dataframe, 20, 2, 2, 0)
     return dataframe_copy

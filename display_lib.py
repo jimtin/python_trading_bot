@@ -1,6 +1,7 @@
 from sql_lib import sql_interaction
 import plotly.graph_objects as go
 from dash import Dash, html, dcc
+from plotly.subplots import make_subplots
 
 
 # Function to retrieve back_test data and then display chart of close values
