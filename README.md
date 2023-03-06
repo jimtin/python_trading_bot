@@ -7,6 +7,12 @@ The code is covered by the MIT 2.0 Open Source licence. Code developed by [James
 
 **All trading is at your own risk :)**
 
+# AlgoQuant.Trade
+Some of the [AlgoQuant.trade](https://www.algoquant.trade/) Offerings:
+1. [Crypto Signals](https://www.algoquant.trade/crypto-signals)
+2. [Forex Signals](https://www.algoquant.trade/forex-signals)
+3. [Blog](https://www.algoquant.trade/blog)
+
 ## Published Content
 ### Introduction
 1. [Introduction](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)
