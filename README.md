@@ -30,6 +30,9 @@ to use the AutoTrading Bot or build one for yourself. Check out these episodes:
 5. [How to Install TALib on Windows](https://youtu.be/jnxqu9MhBIE)
 6. [Build Your Own AutoTrading Bot EMA Cross Detector](https://youtu.be/lbdO_UKEzQU)
 7. [How to Trade the EMA Cross Strategy with Your AutoTrading Bot](https://youtu.be/A6RTl0_13pw)
+8. [How to Convert Your AutoTrading Bot Strategy into BUY and SELL Signals](https://youtu.be/21NtSVuPaZw)
+9. [How to Calculate Lot Size for Your MetaTrader 5 Python Trading Bot](https://youtu.be/fveyPFreenk)
+10. [How to Create Orders with Your MetaTrader Python Trading Bot](https://youtu.be/fveyPFreenk)
 
 ### MetaTrader 5
 1. [Everything You Need to Connect Your Python Trading Bot to MetaTrader 5](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)
