@@ -1,7 +1,7 @@
-'''
+"""
 Assumptions:
 1. All strategy is performed on an existing dataframe. Previous inputs define how dataframe is retrieved/created
-'''
+"""
 from indicator_lib import ema_cross
 import display_lib
 from backtest_lib import backtest_analysis
@@ -35,4 +35,3 @@ def ema_triple_cross_strategy(dataframe, risk_ratio=1, display=True, show=False)
         dataframe_column="ta_ema_200",
         line_name="EMA 200"
     )
-
