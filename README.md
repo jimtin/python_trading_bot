@@ -1,9 +1,28 @@
-# AlgoQuant.Trade AutoTrading Bot
-The AlgoQuant.Trade Trading Bot is an open source algorithmic trading bot you can use to trade FOREX / Crypto / Futures on exchanges.
+-------------------------
 
-It is designed to be used in partnership with the series [Build Your Own Algorithmic Trading Bot](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e) being published on Medium.
+# Update August 2023: Tradeoxy.com
+I could never have imagined how popular this series would become. It became so popular, I launched a [YouTube Channel](https://www.youtube.com/channel/UC1sfWAyk-48pGy58lgehKFA), and got ton's of comments, people reaching out, etc. 
 
-The code is covered by the MIT 2.0 Open Source licence. Code developed by [James Hinton](https://www.linkedin.com/in/jameshinton84/) through [Creative Appnologies](https://www.creativeappnologies.com/).
+What I found was that many of my readers/viewers were spending tens of hours configuring their environment, before even getting to building an algorithm 
+
+**I wanted to change this situation!**
+
+As a result, I've now launched [Tradeoxy.com](https://www.tradeoxy.com/). This platform brings together things:
+- Powerful API's to drastically simplify algorithm development
+- Education, through free and paid courses and YouTube videos
+- Supportive community where everyone helps each other
+
+Currently we are in the build/early access stage, and we would love you to join our journey (also, it's currently free!)
+
+To join us, head to [Tradeoxy.com](https://www.tradeoxy.com/)
+
+If you want to follou our journey, you can do so here:
+- [LinkedIn](https://www.linkedin.com/in/appnologyjames/)
+- [Instagram](https://www.instagram.com/appnologyjames/)
+- [Twitter](https://twitter.com/algoquant_trade)
+- [YouTube](https://www.youtube.com/channel/UC1sfWAyk-48pGy58lgehKFA)
+
+---------------------------------
 
 **All trading is at your own risk :)**
 
