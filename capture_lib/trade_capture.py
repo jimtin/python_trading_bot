@@ -4,25 +4,11 @@ import exceptions
 
 
 # Function to capture order actions
-def capture_order(order_type, strategy, exchange, symbol, comment, project_settings,volume=0.0, stop_loss=0.0,
+def capture_order(order_type, strategy, exchange, symbol, comment, project_settings, volume=0.0, stop_loss=0.0,
                   take_profit=0.0, price=None, paper=True, order_number="", backtest=False):
     """
     Function to capture an order
-    :param order_type: String
-    :param strategy: String
-    :param exchange: String
-    :param symbol: String
-    :param comment: String
-    :param project_settings: JSON Object
-    :param volume: Float
-    :param stop_loss: Float
-    :param take_profit: Float
-    :param price: Float
-    :param paper: Bool
-    :param order_number: INT
-    :return:
     """
-    # Format objects correctly
     strategy = str(strategy)
     order_type = str(order_type)
     exchange = str(exchange)
@@ -31,7 +17,7 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
     stop_loss = float(stop_loss)
     take_profit = float(take_profit)
     comment = str(comment)
-    # Create the Database Object
+
     db_object = {
         "strategy": strategy,
         "exchange": exchange,
@@ -48,44 +34,39 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
     if order_type == "BUY_STOP" or order_type == "SELL_STOP":
         if volume <= 0:
             print(f"Volume must be greater than 0 for an order type of {order_type}")
-            raise SyntaxError # Use Pythons built in error for incorrect syntax
+            raise SyntaxError
         if take_profit <= 0:
             print(f"Take Profit must be greater than 0 for an order type of {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
+            raise ValueError
         if stop_loss <= 0:
             print(f"Stop Loss must be greater than 0 for an order type of {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
-        if price == None:
+            raise ValueError
+        if price is None:
             print(f"Price cannot be NONE on order_type {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
-        else:
-            # Format price correctly
-            price = float(price)
-            # Add to database object
-            db_object['price'] = price
+            raise ValueError
+
+        price = float(price)
+        db_object['price'] = price
 
     # If order_type == "BUY" or "SELL", price must be None
     if order_type == "BUY" or order_type == "SELL":
         if volume <= 0:
             print(f"Volume must be greater than 0 for an order type of {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
+            raise ValueError
         if take_profit <= 0:
             print(f"Take Profit must be greater than 0 for an order type of {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
+            raise ValueError
         if stop_loss <= 0:
             print(f"Stop Loss must be greater than 0 for an order type of {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
-        if price != None:
+            raise ValueError
+        if price is not None:
             print(f"Price must be NONE for order_type {order_type}")
-            raise ValueError  # Use Pythons built in error for incorrect value
-        else:
-            # Make price = 0
-            price = 0
-            db_object['price'] = price
+            raise ValueError
 
-    if backtest == True:
-        pass
-    else:
+        price = 0
+        db_object['price'] = price
+
+    if not backtest:
         # If order_type == "cancel", pass straight through into cancel order function
         if order_type == "CANCEL":
             db_object['price'] = price
@@ -136,8 +117,6 @@ def capture_order(order_type, strategy, exchange, symbol, comment, project_setti
 # Function to capture modifications to open positions
 def capture_position_update(trade_type, order_number, symbol, strategy, exchange, project_settings, comment,
                             new_stop_loss, new_take_profit, price, paper=True, volume=0.0):
-
-    # Format the provided items correctly
     order_type = str(trade_type)
     order_number = int(order_number)
     symbol = str(symbol)
@@ -161,8 +140,7 @@ def capture_position_update(trade_type, order_number, symbol, strategy, exchange
         "order_id": order_number
     }
 
-    # Branch based upon trade_type
-    if trade_type == "trailing_stop_update" or trade_type == "take_profit_update":
+    if trade_type in ["trailing_stop_update", "take_profit_update"]:
         # Branch again based upon exchange type
         if exchange == "mt5":
             # Use the modify_position function from mt5_interaction
@@ -175,11 +153,11 @@ def capture_position_update(trade_type, order_number, symbol, strategy, exchange
             )
             # Update DB Object
             db_object['status'] = "position_modified"
-    elif trade_type == "SELL" or trade_type == "BUY":
+    elif trade_type in ["SELL", "BUY"]:
         # Branch again based upon exchange type
         if exchange == "mt5":
             # Use the close_position function from mt5_interaction
-            #todo: implement inside a try statement
+            # todo: implement inside a try statement
             position_outcome = mt5_interaction.close_position(
                 order_number=order_number,
                 symbol=symbol,
@@ -193,13 +171,9 @@ def capture_position_update(trade_type, order_number, symbol, strategy, exchange
         # Update the position only
         db_object['status'] = "position"
 
-
     # Update SQL
-    # Branch based upon the table
     if paper:
         sql_interaction.insert_paper_trade_action(trade_information=db_object, project_settings=project_settings)
-        return True
     else:
         sql_interaction.insert_live_trade_action(trade_information=db_object, project_settings=project_settings)
-        return True
-
+    return True

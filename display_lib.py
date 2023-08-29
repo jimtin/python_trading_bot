@@ -4,10 +4,8 @@ from dash import Dash, html, dcc
 from plotly.subplots import make_subplots
 
 
-# Function to retrieve back_test data and then display chart of close values
 def show_data(table_name, dataframe, graph_name, project_settings):
-    # Table Name
-    # Get the data
+    """retrieve back_test data and then display chart of close values"""
     dataframe = sql_interaction.retrieve_dataframe(table_name, project_settings)
     # Construct the figure
     fig = go.Figure(data=[go.Candlestick(
@@ -19,11 +17,10 @@ def show_data(table_name, dataframe, graph_name, project_settings):
     )])
 
     fig.add_trace(go.Scatter(
-                x=dataframe['human_time'],
-                y=dataframe['ta_sma_200'],
-                name='ta_sma_200'
-            )
-    )
+        x=dataframe['human_time'],
+        y=dataframe['ta_sma_200'],
+        name='ta_sma_200'
+    ))
 
     fig.add_trace(go.Scatter(
         x=dataframe['human_time'],
@@ -42,15 +39,11 @@ def show_data(table_name, dataframe, graph_name, project_settings):
     app.layout = html.Div(children=[
         html.H1(children=graph_name),
         html.Div("Example data"),
-        dcc.Graph(
-            id='Example Graph',
-            figure=fig
-        )
+        dcc.Graph(id='Example Graph', figure=fig)
     ])
     app.run_server(debug=True)
 
 
-# Function to display a plotly graph in dash
 def display_graph(plotly_fig, graph_title, dash=False, upload=False):
     """
     Function to display a plotly graph using Dash
@@ -59,15 +52,11 @@ def display_graph(plotly_fig, graph_title, dash=False, upload=False):
     :return: None
     """
     # Add in autoscaling for each plotly figure
-    plotly_fig.update_layout(
-        autosize=True
-    )
+    plotly_fig.update_layout(autosize=True)
     plotly_fig.update_yaxes(automargin=True)
     plotly_fig.update_layout(xaxis_rangeslider_visible=False)
 
-
     if dash:
-        # Create the Dash object
         app = Dash(__name__)
         # Construct view
         app.layout = html.Div(children=[
@@ -78,20 +67,15 @@ def display_graph(plotly_fig, graph_title, dash=False, upload=False):
                 figure=plotly_fig
             )
         ])
-        # Run the image
         app.run_server(debug=True)
     else:
         plotly_fig.show()
 
 
-# Function to display a backtest
 def display_backtest(original_strategy, strategy_with_trades, table, graph_title):
-    original_strategy.update_layout(
-        autosize=True
-    )
+    original_strategy.update_layout(autosize=True)
     original_strategy.update_yaxes(automargin=True)
     original_strategy.update_layout(xaxis_rangeslider_visible=False)
-    # Create a Dash Object
     app = Dash(__name__)
 
     # Construct view
@@ -119,7 +103,6 @@ def display_backtest(original_strategy, strategy_with_trades, table, graph_title
     app.run_server(debug=True)
 
 
-
 # Function to construct base candlestick graph
 def construct_base_candlestick_graph(dataframe, candlestick_title):
     """
@@ -137,7 +120,6 @@ def construct_base_candlestick_graph(dataframe, candlestick_title):
         low=dataframe['low'],
         name=candlestick_title
     )])
-    # Return the graph object
     return fig
 
 
@@ -157,52 +139,46 @@ def add_line_to_graph(base_fig, dataframe, dataframe_column, line_name):
         y=dataframe[dataframe_column],
         name=line_name
     ))
-    # Return the object
     return base_fig
 
 
 # Function to display points on graph as diamond
 def add_markers_to_graph(base_fig, dataframe, value_column, point_names):
-     """
-     Function to add points to a graph
-     :param base_fig: plotly figure
-     :param dataframe: pandas dataframe
-     :param value_column: value for Y display
-     :param point_names: what's being plotted
-     :return: updated plotly figure
-     """
-     # Construct trace
-     base_fig.add_trace(go.Scatter(
-         mode="markers",
-         marker=dict(size=8, symbol="diamond"),
-         x=dataframe['human_time'],
-         y=dataframe[value_column],
-         name=point_names
-     ))
-     return base_fig
+    """
+    Function to add points to a graph
+    :param base_fig: plotly figure
+    :param dataframe: pandas dataframe
+    :param value_column: value for Y display
+    :param point_names: what's being plotted
+    :return: updated plotly figure
+    """
+    # Construct trace
+    base_fig.add_trace(go.Scatter(
+        mode="markers",
+        marker=dict(size=8, symbol="diamond"),
+        x=dataframe['human_time'],
+        y=dataframe[value_column],
+        name=point_names
+    ))
+    return base_fig
 
 
 # Function to turn a dataframe into a table
 def add_dataframe(dataframe):
     fig = go.Figure(data=[go.Table(
-            header=dict(values=["Time", "Order Type", "Stop Price", "Stop Loss", "Take Profit"], align='left'),
-            cells=dict(values=[
-                dataframe['human_time'],
-                dataframe['order_type'],
-                dataframe['stop_price'],
-                dataframe['stop_loss'],
-                dataframe['take_profit']
-            ])
-        )]
-    )
+        header=dict(values=["Time", "Order Type", "Stop Price", "Stop Loss", "Take Profit"], align='left'),
+        cells=dict(values=[
+            dataframe['human_time'],
+            dataframe['order_type'],
+            dataframe['stop_price'],
+            dataframe['stop_loss'],
+            dataframe['take_profit']])
+    )])
     return fig
 
 
-# Function to add trades to graph
 def add_trades_to_graph(trades_dict, base_fig):
-    # Create a point plot list
     point_plot = []
-    # Create the colors
     buy_color = dict(color="green")
     sell_color = dict(color="red")
     # Add each set of trades
@@ -224,7 +200,3 @@ def add_trades_to_graph(trades_dict, base_fig):
                 )
             )
     return base_fig
-
-
-# Function to add a table of the strategy outcomes to Plotly
-

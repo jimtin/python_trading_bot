@@ -1,11 +1,8 @@
 import talib
 
 
-# Function to calculate an EMA
 def calc_ema(dataframe, periods):
-    # Create the column title
-    column_title = "ta_ema_" + str(periods)
-    # Calculate
-    dataframe[column_title] = talib.EMA(dataframe['close'], periods)
-    # Return
+    """calculate EMA"""
+    column_title = f"ta_ema_{periods}"
+    dataframe[column_title] = talib.EMA(dataframe['close'], periods)  # Calculate
     return dataframe

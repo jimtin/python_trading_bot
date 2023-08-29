@@ -1,12 +1,10 @@
 import talib
 
-# Function to calculate an SMA with TA-Lib
+
 def calc_ta_sma(dataframe, periods):
-    # Copy the dataframe
-    dataframe = dataframe.copy()
-    # Define new title for column
-    column_title = "ta_sma_" + str(periods)
-    # Calculate
-    dataframe[column_title] = talib.SMA(dataframe['close'], periods)
-    # Return dataframe
-    return dataframe
+    """calculate an SMA with TA-Lib"""
+    df = dataframe.copy()
+    column_title = f"ta_sma_{periods}"
+    df[column_title] = talib.SMA(df['close'], periods)  # Calculate
+
+    return df
