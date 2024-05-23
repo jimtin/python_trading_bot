@@ -1,7 +1,6 @@
 from sql_lib import sql_interaction
 import display_lib
 import datetime
-import pandas
 from backtest_lib import setup_backtest, backtest
 from strategies import ema_cross
 import hashlib
@@ -10,8 +9,10 @@ import pytz
 
 # Function to initiate and manage backtest
 def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project_settings, get_data=True,
-                exchange="mt5", optimize=False, display=False, variables={"risk_ratio": 3}, full_analysis=False,
+                exchange="mt5", optimize=False, display=False, variables=None, full_analysis=False,
                 redo_analysis=False, regather_data=False):
+    if variables is None:
+        variables = {"risk_ratio": 3}
     symbol_name = symbol.split(".")
     # Set the table names
     table_name_base = strategy_name + "_" + symbol_name[0] + "_"
@@ -35,6 +36,7 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
     if regather_data:
         # todo: Delete previous data
         pass
+
     # If data required
     if get_data:
         print("Getting Data")
@@ -50,9 +52,11 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
             tick_table_name=tick_data_table_name,
             balance_tracker_table=balance_tracker_table
         )
+
     if redo_analysis:
         # todo: Delete previous analysis tables
         pass
+
     if full_analysis:
         # Get the raw data
         raw_dataframe = sql_interaction.retrieve_dataframe(
@@ -78,13 +82,12 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
             valid_trades_table=valid_trades_table
         )
         # Capture outcomes
-        #todo: Calculate trade outcomes function
-        #todo: Save trade outcomes to SQL (preparation for optimization)
+        # todo: Calculate trade outcomes function
+        # todo: Save trade outcomes to SQL (preparation for optimization)
 
     # Construct the trades
     if optimize:
-        # Optimize the take profit.
-
+        # todo: optimize the take profit
         pass
 
     if display:
@@ -133,9 +136,8 @@ def do_backtest(strategy_name, symbol, candle_timeframe, test_timeframe, project
     return True
 
 
-# Function to display backtest details to user
 def show_display(strategy_image, trades_outcome, proposed_trades, symbol, strategy):
-    # Construct the Title
+    """display backtest details to user"""
     title = symbol + " " + strategy
     # Add trades to strategy image
     strategy_with_trades = display_lib.add_trades_to_graph(
@@ -145,7 +147,6 @@ def show_display(strategy_image, trades_outcome, proposed_trades, symbol, strate
     # Turn proposed trades into a subplot
     prop_trades_figure = display_lib.add_dataframe(proposed_trades)
 
-
     display_lib.display_backtest(
         original_strategy=strategy_image,
         strategy_with_trades=strategy_with_trades,
@@ -154,8 +155,8 @@ def show_display(strategy_image, trades_outcome, proposed_trades, symbol, strate
     )
 
 
-# Function to retrieve and construct trade open and sell
 def calculate_trades(trade_object, comment, project_settings):
+    """retrieve and construct trade open and sell"""
     # Retrieve the trades for the strategy being analyzed
     trades = sql_interaction.retrieve_unique_order_id(
         trade_object=trade_object,
@@ -163,7 +164,7 @@ def calculate_trades(trade_object, comment, project_settings):
         project_settings=project_settings)
     trade_list = []
     full_trades = []
-    # Format the trades into a nicer list
+
     for trade in trades:
         trade_list.append(trade[0])
 
@@ -222,28 +223,14 @@ def calculate_trades(trade_object, comment, project_settings):
     return summary
 
 
-# Function to calculate if a trade was a win or loss and profit
 def calc_the_win(row):
-    # Set up record
-    outcome = {
-        "profit": 0,
-        "win": False,
-        "not_completed": False
-    }
-    # Branch based on order type
+    """calculate if a trade was a win or loss and profit"""
+    outcome = {"not_completed": False}
+
     if row[3] == "BUY_STOP":
-        # Calculate the profit
         outcome["profit"] = (row[18] - row[17]) * row[6]
     else:
-        # Calculate the profit
         outcome["profit"] = (row[17] - row[18]) * row[6]
-    # Profit will be any number > 0
-    if outcome["profit"] > 0:
-        outcome['win'] = True
-    else:
-        outcome['win'] = False
-    # Return outcome
+
+    outcome['win'] = outcome["profit"] > 0
     return outcome
-
-
-
