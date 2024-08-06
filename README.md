@@ -10,14 +10,12 @@ We love connecting with our audience! Join us on the following links:
 **All trading is at your own risk :)**
 
 ## Published Content
-### Introduction
-1. [Introduction](https://medium.com/@appnologyjames/build-your-own-algorithmic-trading-bot-with-python-introduction-cb51c6db892e)
 
 ### How to Install TALib
 1. Windows: [5 Easy Steps to Add TA-Lib to Your Python Trading Bot on Windows](https://medium.com/@appnologyjames/5-easy-steps-to-add-ta-lib-to-your-python-trading-bot-on-windows-16f82fb07788)
 
 ### YouTube
-Our YouTube channel [algoquant_trade](https://www.youtube.com/@algoquant_trade) contains tons of helpful content on how
+Our YouTube channel [TradeOxy](https://www.youtube.com/@tradeoxy) contains tons of helpful content on how
 to use the AutoTrading Bot or build one for yourself. Check out these episodes:
 1. [Secure Setup](https://www.youtube.com/watch?v=jpw3JltNMg0)
 2. [Connect To MetaTrader 5 with Python](https://www.youtube.com/watch?v=EkP7iAZoMEw&t=2s)
