@@ -1,7 +1,7 @@
 import psycopg2
 import psycopg2.extras
 from sqlalchemy import create_engine
-import pandas
+import pandas as pd
 
 # Function to connect to PostgreSQL database
 import exceptions
@@ -28,7 +28,6 @@ def postgres_connect(project_settings):
         return False
 
 
-# Function to execute SQL
 def sql_execute(sql_query, project_settings):
     """
     Function to execute SQL statements
@@ -40,11 +39,8 @@ def sql_execute(sql_query, project_settings):
     # Execute the query
     try:
         # print(sql_query)
-        # Create the cursor
         cursor = conn.cursor()
-        # Execute the cursor query
         cursor.execute(sql_query)
-        # Commit the changes
         conn.commit()
         return True
     except (Exception, psycopg2.Error) as e:
@@ -56,10 +52,10 @@ def sql_execute(sql_query, project_settings):
             conn.close()
 
 
-# Function to create a table
 def create_sql_table(table_name, table_details, project_settings, id=True):
     """
     Function to create a table in SQL
+    :param id: ?
     :param table_name: String
     :param table_details: String
     :param project_settings: JSON Object
@@ -72,11 +68,12 @@ def create_sql_table(table_name, table_details, project_settings, id=True):
     else:
         # Create without an auto incrementing primary key
         sql_query = f"CREATE TABLE {table_name} (id BIGINT NOT NULL, {table_details})"
-    # Execute the query
+
     create_table = sql_execute(sql_query=sql_query, project_settings=project_settings)
-    if create_table:
-        return True
-    raise exceptions.SQLTableCreationError
+    if not create_table:
+        raise exceptions.SQLTableCreationError
+
+    return True
 
 
 # Function to create a balance tracking table
@@ -180,11 +177,9 @@ def insert_trade_action(table_name, trade_information, project_settings, backtes
     elif backtest:
         sql_query = f"INSERT INTO {table_name} "
     else:
-        # Return an exception
-        return Exception  # Custom Error Handling Coming Soon
+        raise Exception  # Custom Error Handling Coming Soon
 
 
-# Function to insert a live trade action into SQL database
 def insert_live_trade_action(trade_information, project_settings):
     """
     Function to insert a row of trade data into the table live_trade_table
@@ -199,7 +194,6 @@ def insert_live_trade_action(trade_information, project_settings):
     )
 
 
-# Function to insert a paper trade action into SQL database
 def insert_paper_trade_action(trade_information, project_settings):
     """
     Function to insert a row of trade data into the table paper_trade_table
@@ -214,8 +208,8 @@ def insert_paper_trade_action(trade_information, project_settings):
     )
 
 
-# Function to create a backtest tick table
 def create_mt5_backtest_tick_table(table_name, project_settings):
+    """create a backtest tick table"""
     # Define the columns in the table
     table_details = f"symbol VARCHAR(100) NOT NULL," \
                     f"time BIGINT NOT NULL," \
@@ -305,26 +299,15 @@ def retrieve_dataframe(table_name, project_settings, chunky=False, tick_data=Fal
     else:
         sql_query = f"SELECT * FROM {table_name} ORDER BY time;"
     if chunky:
-        # Set the chunk size
         chunk_size = 10000  # You may need to adjust this based upon your processor
-        # Set up database chunking
-        db_connection = engine.connect().execution_options(
-            max_row_buffer=chunk_size
-        )
-        # Retrieve the data
-        dataframe = pandas.read_sql(sql_query, db_connection, chunksize=chunk_size)
-        # Close the connection
+        db_connection = engine.connect().execution_options(max_row_buffer=chunk_size)
+        dataframe = pd.read_sql(sql_query, db_connection, chunksize=chunk_size)
         db_connection.close()
-        # Return the dataframe
         return dataframe
     else:
-        # Standard DB connection
         db_connection = engine.connect()
-        # Retrieve the data
-        dataframe = pandas.read_sql(sql_query, db_connection)
-        # Close the connection
+        dataframe = pd.read_sql(sql_query, db_connection)
         db_connection.close()
-        # Return the dataframe
         return dataframe
 
 

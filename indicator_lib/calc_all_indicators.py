@@ -1,32 +1,22 @@
 from indicator_lib import doji_star, rsi, ta_sma, ta_ema, two_crows, three_black_crows, bollinger_bands
 
-# Calculate all the indicator_lib currently available
+
 def all_indicators(dataframe):
-    # Copy the dataframe
-    dataframe_copy = dataframe.copy()
-    # SMA's
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 5)
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 8)
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 15)
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 20)
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 50)
-    dataframe_copy = ta_sma.calc_ta_sma(dataframe_copy, 200)
-    # EMA's
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 5)
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 8)
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 15)
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 20)
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 50)
-    dataframe_copy = ta_ema.calc_ema(dataframe_copy, 200)
+    """Calculate all the indicator_lib currently available"""
+    df = dataframe.copy()
+
+    for val in [5, 8, 15, 20, 50, 200]:  # SMA
+        df = ta_sma.calc_ta_sma(df, val)
+
+    for val in [5, 8, 15, 20, 50, 200]:  # EMA
+        df = ta_ema.calc_ema(df, val)
+
     # Patterns
-    # 2 Crows
-    dataframe_copy = two_crows.calc_two_crows(dataframe_copy)
-    # Three black crows
-    dataframe_copy = three_black_crows.calc_three_black_crows(dataframe_copy)
-    # Doji Star
-    dataframe_copy = doji_star.doji_star(dataframe_copy)
-    # RSI
-    dataframe_copy = rsi.rsi(dataframe_copy)
+    df = two_crows.calc_two_crows(df)  # 2 Crows
+    df = three_black_crows.calc_three_black_crows(df)  # Three black crows
+    df = doji_star.doji_star(df)  # Doji Star
+    df = rsi.rsi(df)  # RSI
+
     # Overlap Studies
-    #dataframe = bollinger_bands.calc_bollinger_bands(dataframe, 20, 2, 2, 0)
-    return dataframe_copy
+    # df = bollinger_bands.calc_bollinger_bands(df, 20, 2, 2, 0)
+    return df

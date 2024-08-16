@@ -6,7 +6,6 @@ import pytz
 import exceptions
 
 
-# Function to start Meta Trader 5 (MT5)
 def start_mt5(username, password, server, path):
     """
     Initializes and logs into MT5
@@ -17,34 +16,33 @@ def start_mt5(username, password, server, path):
     :return: True if successful, Error if not
     """
     # Ensure that all variables are the correct type
-    uname = int(username)  # Username must be an int
-    pword = str(password)  # Password must be a string
-    trading_server = str(server)  # Server must be a string
-    filepath = str(path)  # Filepath must be a string
+    uname = int(username)
+    pword = str(password)
+    trading_server = str(server)
+    filepath = str(path)
 
-    # Attempt to start MT5
+    # start MT5
     try:
         metaTrader_init = MetaTrader5.initialize(login=uname, password=pword, server=trading_server, path=filepath)
     except Exception as e:
         print(f"Error initializing MetaTrader: {e}")
         raise exceptions.MetaTraderInitializeError
 
-    # Attempt to login to MT5
+    # login to MT5
     if not metaTrader_init:
         raise exceptions.MetaTraderInitializeError
-    else:
-        try:
-            metaTrader_login = MetaTrader5.login(login=uname, password=pword, server=trading_server)
-        except Exception as e:
-            print(f"Error loging in to MetaTrader: {e}")
-            raise exceptions.MetaTraderLoginError
+
+    try:
+        metaTrader_login = MetaTrader5.login(login=uname, password=pword, server=trading_server)
+    except Exception as e:
+        print(f"Error loging in to MetaTrader: {e}")
+        raise exceptions.MetaTraderLoginError
 
     # Return True if initialization and login are successful
     if metaTrader_login:
         return True
 
 
-# Function to initialize a symbol on MT5
 def initialize_symbols(symbol_array):
     """
     Function to initialize a symbol on MT5. Note that different brokers have different symbols.
@@ -54,9 +52,7 @@ def initialize_symbols(symbol_array):
     """
     # Get a list of all symbols supported in MT5
     all_symbols = MetaTrader5.symbols_get()
-    # Create a list to store all the symbols
     symbol_names = []
-    # Add the retrieved symbols to the list
     for symbol in all_symbols:
         symbol_names.append(symbol.name)
 
@@ -64,20 +60,14 @@ def initialize_symbols(symbol_array):
     for provided_symbol in symbol_array:
         if provided_symbol in symbol_names:
             # If it exists, enable
-            if MetaTrader5.symbol_select(provided_symbol, True):
-                pass
-            else:
-                # Print the outcome to screen. Custom Logging/Error Handling not yet created
+            if not MetaTrader5.symbol_select(provided_symbol, True):
                 print(f"Error creating symbol {provided_symbol}. Symbol not enabled.")
-                # Return a generic value error. Custom Error Handling not yet created.
                 raise exceptions.MetaTraderSymbolUnableToBeEnabledError
         else:
-            # Print the outcome to screen. Custom Logging/Error Handling not yet created
             print(f"Symbol {provided_symbol} does not exist in this MT5 implementation. Symbol not enabled.")
-            # Return a generic syntax error. Custom Error Handling not yet enabled
             raise exceptions.MetaTraderSymbolDoesNotExistError
-    # Return true if all symbols enabled
-    return True
+
+    return True  # all symbols enabled
 
 
 # Function to place a trade on MT5
@@ -155,22 +145,23 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, dir
     else:
         # Check the order
         result = MetaTrader5.order_check(request)
-        if result[0] == 0:
-            # print("Balance Check Successful") # Enable to error check Balance Check
-            # If order check is successful, place the order. Little bit of recursion for fun.
-            place_order(
-                order_type=order_type,
-                symbol=symbol,
-                volume=volume,
-                price=price,
-                stop_loss=stop_loss,
-                take_profit=take_profit,
-                comment=comment,
-                direct=True
-            )
-        else:
+        if result[0] != 0:
             print(f"Order unsucessful. Details: {result}")
             raise exceptions.MetaTraderOrderCheckError
+
+        # print("Balance Check Successful") # Enable to error check Balance Check
+        # If order check is successful, place the order. Little bit of recursion for fun.
+        place_order(
+            order_type=order_type,
+            symbol=symbol,
+            volume=volume,
+            price=price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+            comment=comment,
+            direct=True
+        )
+
 
 # Function to cancel an order
 def cancel_order(order_number):
@@ -187,14 +178,13 @@ def cancel_order(order_number):
     }
     # Send order to MT5
     order_result = MetaTrader5.order_send(request)
-    if order_result[0] == 10009:
-        return True
-    else:
+    if order_result[0] != 10009:
         print(f"Error cancelling order. Details: {order_result}")
         raise exceptions.MetaTraderCancelOrderError
 
+    return True
 
-# Function to modify an open position
+
 def modify_position(order_number, symbol, new_stop_loss, new_take_profit):
     """
     Function to modify a position
@@ -214,14 +204,13 @@ def modify_position(order_number, symbol, new_stop_loss, new_take_profit):
     }
     # Send order to MT5
     order_result = MetaTrader5.order_send(request)
-    if order_result[0] == 10009:
-        return True
-    else:
+    if order_result[0] != 10009:
         print(f"Error modifying position. Details: {order_result}")
         raise exceptions.MetaTraderModifyPositionError
 
+    return True
 
-# Function to retrieve all open orders from MT5
+
 def get_open_orders():
     """
     Function to retrieve a list of open orders from MetaTrader 5
@@ -234,19 +223,15 @@ def get_open_orders():
     return order_array
 
 
-# Function to retrieve all open positions
 def get_open_positions():
     """
     Function to retrieve a list of open orders from MetaTrader 5
     :return: list of positions
     """
-    # Get position objects
     positions = MetaTrader5.positions_get()
-    # Return position objects
     return positions
 
 
-# Function to close an open position
 def close_position(order_number, symbol, volume, order_type, price, comment):
     """
     Function to close an open position from MetaTrader 5
@@ -275,66 +260,50 @@ def close_position(order_number, symbol, volume, order_type, price, comment):
 
     # Place the order
     result = MetaTrader5.order_send(request)
-    if result[0] == 10009:
-        return True
-    else:
+    if result[0] != 10009:
         print(f"Error closing position. Details: {result}")
         raise exceptions.MetaTraderClosePositionError
+
+    return True
 
 
 # Function to convert a timeframe string in MetaTrader 5 friendly format
 def set_query_timeframe(timeframe):
-    # Implement a Pseudo Switch statement. Note that Python 3.10 implements match / case but have kept it this way for
-    # backwards integration
-    if timeframe == "M1":
-        return MetaTrader5.TIMEFRAME_M1
-    elif timeframe == "M2":
-        return MetaTrader5.TIMEFRAME_M2
-    elif timeframe == "M3":
-        return MetaTrader5.TIMEFRAME_M3
-    elif timeframe == "M4":
-        return MetaTrader5.TIMEFRAME_M4
-    elif timeframe == "M5":
-        return MetaTrader5.TIMEFRAME_M5
-    elif timeframe == "M6":
-        return MetaTrader5.TIMEFRAME_M6
-    elif timeframe == "M10":
-        return MetaTrader5.TIMEFRAME_M10
-    elif timeframe == "M12":
-        return MetaTrader5.TIMEFRAME_M12
-    elif timeframe == "M15":
-        return MetaTrader5.TIMEFRAME_M15
-    elif timeframe == "M20":
-        return MetaTrader5.TIMEFRAME_M20
-    elif timeframe == "M30":
-        return MetaTrader5.TIMEFRAME_M30
-    elif timeframe == "H1":
-        return MetaTrader5.TIMEFRAME_H1
-    elif timeframe == "H2":
-        return MetaTrader5.TIMEFRAME_H2
-    elif timeframe == "H3":
-        return MetaTrader5.TIMEFRAME_H3
-    elif timeframe == "H4":
-        return MetaTrader5.TIMEFRAME_H4
-    elif timeframe == "H6":
-        return MetaTrader5.TIMEFRAME_H6
-    elif timeframe == "H8":
-        return MetaTrader5.TIMEFRAME_H8
-    elif timeframe == "H12":
-        return MetaTrader5.TIMEFRAME_H12
-    elif timeframe == "D1":
-        return MetaTrader5.TIMEFRAME_D1
-    elif timeframe == "W1":
-        return MetaTrader5.TIMEFRAME_W1
-    elif timeframe == "MN1":
-        return MetaTrader5.TIMEFRAME_MN1
-    else:
+    switch = {
+        "M1": MetaTrader5.TIMEFRAME_M1,
+        "M2": MetaTrader5.TIMEFRAME_M2,
+        "M3": MetaTrader5.TIMEFRAME_M3,
+        "M4": MetaTrader5.TIMEFRAME_M4,
+        "M5": MetaTrader5.TIMEFRAME_M5,
+        "M6": MetaTrader5.TIMEFRAME_M6,
+        "M10": MetaTrader5.TIMEFRAME_M10,
+        "M12": MetaTrader5.TIMEFRAME_M12,
+        "M15": MetaTrader5.TIMEFRAME_M15,
+        "M20": MetaTrader5.TIMEFRAME_M20,
+        "M30": MetaTrader5.TIMEFRAME_M30,
+
+        "H1": MetaTrader5.TIMEFRAME_H1,
+        "H2": MetaTrader5.TIMEFRAME_H2,
+        "H3": MetaTrader5.TIMEFRAME_H3,
+        "H4": MetaTrader5.TIMEFRAME_H4,
+        "H6": MetaTrader5.TIMEFRAME_H6,
+        "H8": MetaTrader5.TIMEFRAME_H8,
+        "H12": MetaTrader5.TIMEFRAME_H12,
+
+        "D1": MetaTrader5.TIMEFRAME_D1,
+        "W1": MetaTrader5.TIMEFRAME_W1,
+        "MN1": MetaTrader5.TIMEFRAME_MN1,
+    }
+
+    if timeframe not in switch:
         print(f"Incorrect timeframe provided. {timeframe}")
         raise ValueError
 
+    return switch[timeframe]
 
-# Function to query previous candlestick data from MT5
+
 def query_historic_data(symbol, timeframe, number_of_candles):
+    """query previous candlestick data from MT5"""
     # Convert the timeframe into an MT5 friendly format
     mt5_timeframe = set_query_timeframe(timeframe)
     # Retrieve data from MT5
@@ -342,7 +311,6 @@ def query_historic_data(symbol, timeframe, number_of_candles):
     return rates
 
 
-# Function to retrieve latest tick for a symbol
 def retrieve_latest_tick(symbol):
     """
     Function to retrieve the latest tick for a symbol
@@ -351,13 +319,12 @@ def retrieve_latest_tick(symbol):
     """
     # Retrieve the tick information
     tick = MetaTrader5.symbol_info_tick(symbol)._asdict()
-    spread = tick['ask'] - tick['bid']
-    tick['spread'] = spread
+    tick['spread'] = tick['ask'] - tick['bid']
     return tick
 
 
-# Function to retrieve ticks from a time range
 def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=False):
+    """retrieve ticks from a time range"""
     # Set option in MT5 terminal for Unlimited bars
     # Check time format of start time
     if type(start_time_utc) != datetime.datetime:
@@ -371,11 +338,8 @@ def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=
     ticks = MetaTrader5.copy_ticks_range(symbol, start_time_utc, finish_time_utc, MetaTrader5.COPY_TICKS_INFO)
     # Convert into dataframe only if Dataframe set to True
     if dataframe:
-        # Convert into a dataframe
         ticks_data_frame = pandas.DataFrame(ticks)
-        # Add spread
         ticks_data_frame['spread'] = ticks_data_frame['ask'] - ticks_data_frame['bid']
-        # Add symbol
         ticks_data_frame['symbol'] = symbol
         # Format integers into signed integers (postgres doesn't support unsigned int)
         ticks_data_frame['time'] = ticks_data_frame['time'].astype('int64')
@@ -385,8 +349,8 @@ def retrieve_tick_time_range(start_time_utc, finish_time_utc, symbol, dataframe=
     return ticks
 
 
-# Function to retrieve candlestick data for a specified time range
 def retrieve_candlestick_data_range(start_time_utc, finish_time_utc, symbol, timeframe, dataframe=False):
+    """retrieve candlestick data for a specified time range"""
     # Set option in MT5 terminal for Unlimited bars
     # Check time format of start time
     if type(start_time_utc) != datetime.datetime:
@@ -401,9 +365,7 @@ def retrieve_candlestick_data_range(start_time_utc, finish_time_utc, symbol, tim
     # Retrieve the data
     candlestick_data = MetaTrader5.copy_rates_range(symbol, timeframe_value, start_time_utc, finish_time_utc)
     if dataframe:
-        # Convert to a dataframe
         candlestick_dataframe = pandas.DataFrame(candlestick_data)
-        # Add in symbol and timeframe columns
         candlestick_dataframe['symbol'] = symbol
         candlestick_dataframe['timeframe'] = timeframe
         # Convert integers into signed integers (postgres doesn't support unsigned int)
@@ -411,9 +373,5 @@ def retrieve_candlestick_data_range(start_time_utc, finish_time_utc, symbol, tim
         candlestick_dataframe['tick_volume'] = candlestick_dataframe['tick_volume'].astype('float64')
         candlestick_dataframe['spread'] = candlestick_dataframe['spread'].astype('int64')
         candlestick_dataframe['real_volume'] = candlestick_dataframe['real_volume'].astype('int64')
-        # Return completed dataframe
         return candlestick_dataframe
-    else:
-        return candlestick_data
-
-
+    return candlestick_data

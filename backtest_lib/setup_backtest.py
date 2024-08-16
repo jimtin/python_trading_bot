@@ -1,7 +1,7 @@
 import stat
 
-import numpy
-import pandas
+import numpy as np
+import pandas as pd
 import psycopg2
 
 import exceptions
@@ -30,31 +30,25 @@ def set_up_backtester(strategy_name, symbol, candle_timeframe, backtest_timefram
     create_backtest_tables(tick_table_name=tick_table_name,
                            balance_tracker_table=balance_tracker_table,
                            project_settings=project_settings)
-    # Get the datetime now
+
     current_datetime = datetime.datetime.now()
     current_datetime = current_datetime.astimezone(datetime.timezone.utc)
+
     # Populate the raw data based upon easily selected timeframes
-    if backtest_timeframe == "month":
-        previous_datetime = current_datetime - relativedelta(months=1)
-        pass
-    elif backtest_timeframe == "5days":
-        previous_datetime = current_datetime - relativedelta(days=5)
-        pass
-    elif backtest_timeframe == "6month":
-        previous_datetime = current_datetime - relativedelta(months=6)
-        pass
-    elif backtest_timeframe == "year":
-        previous_datetime = current_datetime - relativedelta(years=1)
-        pass
-    elif backtest_timeframe == "2years":
-        previous_datetime = current_datetime - relativedelta(years=2)
-        pass
-    elif backtest_timeframe == "5years":
-        previous_datetime = current_datetime - relativedelta(years=5)
-        pass
-    else:
+    switch = {
+        "month": {"months": 1},
+        "5days": {"days": 5},
+        "6month": {"months": 6},
+        "year": {"years": 1},
+        "2years": {"years": 2},
+        "5years": {"years": 5}
+    }
+
+    if backtest_timeframe not in switch:
         print("Choose correct value for backtester")
         raise exceptions.BacktestIncorrectBacktestTimeframeError
+
+    previous_datetime = current_datetime - relativedelta(**switch[backtest_timeframe])
 
     if exchange == "mt5":
         # Retrieve data
@@ -134,8 +128,9 @@ def split_time_range_in_half(start_time, finish_time):
     n = 2
     split_timeframe = []
     diff = (finish_time - start_time) // n
-    for idx in range(0, n):
+    for idx in range(n):
         split_timeframe.append((start_time + idx * diff))
+
     split_timeframe.append(finish_time)
     return split_timeframe
 
@@ -149,36 +144,30 @@ def retrieve_mt5_tick_data(start_time, finish_time, symbol):
         symbol=symbol
     )
     # Autoscale if Zero results retrieved
-    if type(tick_data) is not numpy.ndarray:
+    if type(tick_data) is not np.ndarray:
         print(f"Auto scaling tick query for {symbol}")
         # Split timerange into 2
         split_timeframe = split_time_range_in_half(start_time=start_time, finish_time=finish_time)
         # Iterate through timeframe list and append
         start_time = split_timeframe[0]
-        tick_data_autoscale = pandas.DataFrame()
+        tick_data_autoscale = pd.DataFrame()
         for timeframe in split_timeframe:
-            if timeframe == split_timeframe[0]:
-                # Initial pass, so ignore
-                pass
-
-            else:
+            if timeframe != split_timeframe[0]:
                 tick_data_new = retrieve_mt5_tick_data(start_time=start_time, finish_time=timeframe, symbol=symbol)
-                tick_data_autoscale = pandas.concat([tick_data_autoscale, tick_data_new])
+                tick_data_autoscale = pd.concat([tick_data_autoscale, tick_data_new])
                 start_time = timeframe
         return tick_data_autoscale
     # Else return value
-    ticks_data_frame = pandas.DataFrame(tick_data)
+    ticks_data_frame = pd.DataFrame(tick_data)
 
-    # Add spread
     ticks_data_frame['spread'] = ticks_data_frame['ask'] - ticks_data_frame['bid']
-    # Add symbol
     ticks_data_frame['symbol'] = symbol
     # Format integers into signed integers (postgres doesn't support unsigned int)
     ticks_data_frame['time'] = ticks_data_frame['time'].astype('int64')
     ticks_data_frame['volume'] = ticks_data_frame['volume'].astype('int64')
     ticks_data_frame['time_msc'] = ticks_data_frame['time_msc'].astype('int64')
-    ticks_data_frame['human_time'] = pandas.to_datetime(ticks_data_frame['time'], unit='s')
-    ticks_data_frame['human_time_msc'] = pandas.to_datetime(ticks_data_frame['time_msc'], unit='ms')
+    ticks_data_frame['human_time'] = pd.to_datetime(ticks_data_frame['time'], unit='s')
+    ticks_data_frame['human_time_msc'] = pd.to_datetime(ticks_data_frame['time_msc'], unit='ms')
     return ticks_data_frame
 
 
@@ -191,29 +180,26 @@ def retrieve_mt5_candle_data(start_time, finish_time, timeframe, symbol):
         timeframe=timeframe,
         symbol=symbol
     )
-    if type(candlestick_data) is not numpy.ndarray:
+    if type(candlestick_data) is not np.ndarray:
         print(f"Auto scaling candlestick query for {symbol} and {timeframe}")
         # Split time range in 2
         split_timeframe = split_time_range_in_half(start_time=start_time, finish_time=finish_time)
         # Iterate through the timeframe list and construct full list
         start_time = split_timeframe[0]
-        candlestick_data_autoscale = pandas.DataFrame()
+        candlestick_data_autoscale = pd.DataFrame()
         for time in split_timeframe:
-            if time == split_timeframe[0]:
-                # Initial pass, so ignore
-                pass
-            else:
+            if time != split_timeframe[0]:
                 candlestick_data_new = retrieve_mt5_candle_data(
                     start_time=start_time,
                     finish_time=time,
                     timeframe=timeframe,
                     symbol=symbol
                 )
-                candlestick_data_autoscale = pandas.concat([candlestick_data_autoscale, candlestick_data_new])
+                candlestick_data_autoscale = pd.concat([candlestick_data_autoscale, candlestick_data_new])
         return candlestick_data_autoscale
 
     # Convert to a dataframe
-    candlestick_dataframe = pandas.DataFrame(candlestick_data)
+    candlestick_dataframe = pd.DataFrame(candlestick_data)
     # Add in symbol and timeframe columns
     candlestick_dataframe['symbol'] = symbol
     candlestick_dataframe['timeframe'] = timeframe
@@ -222,15 +208,13 @@ def retrieve_mt5_candle_data(start_time, finish_time, timeframe, symbol):
     candlestick_dataframe['tick_volume'] = candlestick_dataframe['tick_volume'].astype('float64')
     candlestick_dataframe['spread'] = candlestick_dataframe['spread'].astype('int64')
     candlestick_dataframe['real_volume'] = candlestick_dataframe['real_volume'].astype('int64')
-    candlestick_dataframe['human_time'] = pandas.to_datetime(candlestick_dataframe['time'], unit='s')
+    candlestick_dataframe['human_time'] = pd.to_datetime(candlestick_dataframe['time'], unit='s')
     return candlestick_dataframe
 
 
 # Function to upload a dataframe to Postgres
 def upload_to_postgres(dataframe, table_name, project_settings):
-    ## Process to upload to local database: Get directory, write to csv, update CSV permissions, upload to DB,
-    # delete CSV
-
+    # upload to local database: Get directory, write to csv, update CSV permissions, upload to DB, delete CSV
     # Specify the disk location
     current_user = os.getlogin()
     dataframe_csv = f"C:\\Users\\{current_user}\\Desktop\\ticks_data_frame.csv"
@@ -238,14 +222,11 @@ def upload_to_postgres(dataframe, table_name, project_settings):
     # Dump the dataframe to disk
     dataframe.to_csv(dataframe_csv, index_label='id', header=False)
 
-    # Open the csv
     f = open(dataframe_csv, 'r')
-
     # Connect to database
     conn = sql_interaction.postgres_connect(project_settings)
     cursor = conn.cursor()
 
-    # Try to upload
     try:
         cursor.copy_from(f, table_name, sep=",")
         conn.commit()

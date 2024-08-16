@@ -1,8 +1,8 @@
 import talib
 
-# Function to calculate the two crows indicator
+
 def calc_two_crows(dataframe):
-    # Define new title for column
+    """calculate the two crows indicator"""
     column_title = "ta_two_crows"
     # Calculate
     dataframe[column_title] = talib.CDL2CROWS(

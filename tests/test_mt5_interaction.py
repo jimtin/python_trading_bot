@@ -2,12 +2,10 @@ import pytest
 import exceptions
 import os
 import json
-
-# Libraries being tested
 import main
 from metatrader_lib import mt5_interaction
 
-# Define project settings location
+
 import_filepath = "test_settings.json"
 
 fake_login_details = {
@@ -64,7 +62,7 @@ def test_initialize_symbols_real():
 def test_place_order_wrong_order_type():
     # Fake order
     with pytest.raises(SyntaxError) as e:
-        mt5_interaction.place_order("WRONG_TYPE", "BTCUSD.a", 0.0, 0.0,0.0,"comment")
+        mt5_interaction.place_order("WRONG_TYPE", "BTCUSD.a", 0.0, 0.0, 0.0, "comment")
         assert e.type == SyntaxError
 
 
@@ -76,6 +74,7 @@ def test_place_order_incorrect_balance():
         mt5_interaction.place_order("BUY", "BTCUSD.a", test_order['incorrect_volume'], test_order['buy_stop_loss'],
                                     test_order['buy_take_profit'], "UnitTestOrder")
         assert e.type == exceptions.MetaTraderOrderCheckError
+
 
 # Test that place_order throws an error if incorrect stop_loss
 def test_place_order_incorrect_stop_loss():
@@ -143,14 +142,14 @@ def test_place_order_buy():
     # Get options for a test order
     test_order = get_a_test_order()
     outcome = mt5_interaction.place_order(
-            order_type="BUY",
-            symbol="BTCUSD.a",
-            volume=test_order['correct_volume'],
-            stop_loss=test_order['buy_stop_loss'],
-            take_profit=test_order['buy_take_profit'],
-            comment="TestTrade"
-        )
-    assert outcome == None
+        order_type="BUY",
+        symbol="BTCUSD.a",
+        volume=test_order['correct_volume'],
+        stop_loss=test_order['buy_stop_loss'],
+        take_profit=test_order['buy_take_profit'],
+        comment="TestTrade"
+    )
+    assert outcome is None
 
 
 # Test that placing SELL order works
@@ -164,7 +163,7 @@ def test_place_order_sell():
         take_profit=test_order['sell_take_profit'],
         comment="TestTrade"
     )
-    assert outcome == None
+    assert outcome is None
 
 
 # Test that placing a BUY_STOP order works
@@ -179,7 +178,7 @@ def test_place_order_buy_stop():
         comment="TestTrade",
         price=test_order['correct_buy_stop']
     )
-    assert outcome == None
+    assert outcome
 
 
 # Test that placing a SELL_STOP order works
@@ -194,7 +193,7 @@ def test_place_order_sell_stop():
         comment="TestTrade",
         price=test_order['correct_sell_stop']
     )
-    assert outcome == None
+    assert outcome
 
 
 # Test that canceling a non-existing order throws an error
@@ -212,7 +211,7 @@ def test_cancel_order():
     # Iterate through and cancel
     for order in orders:
         outcome = mt5_interaction.cancel_order(order)
-        assert outcome == True
+        assert outcome
 
 
 # Test the ability to modify an open positions stop loss
@@ -230,7 +229,7 @@ def test_modify_position_new_stop_loss():
                 new_stop_loss=new_stop_loss,
                 new_take_profit=position[12]
             )
-            assert outcome == True
+            assert outcome
 
 
 # Test ability to modify an open positions take profit
@@ -248,7 +247,7 @@ def test_modify_position_new_take_profit():
                 new_stop_loss=position[11],
                 new_take_profit=new_take_profit
             )
-            assert outcome == True
+            assert outcome
 
 
 # Test ability to modify both take profit and stop loss simultaneously
@@ -267,7 +266,8 @@ def test_modify_position():
                 new_stop_loss=new_stop_loss,
                 new_take_profit=new_take_profit
             )
-            assert outcome == True
+            assert outcome
+
 
 # Test Modify Position throws an error
 def test_modify_position_error():
@@ -335,13 +335,13 @@ def test_close_position():
             elif position[5] == 1:
                 order_type = "BUY"
             outcome = mt5_interaction.close_position(
-                    order_number=position[0],
-                    symbol=position[16],
-                    volume=position[9],
-                    order_type=order_type,
-                    price=position[13],
-                    comment="TestTrade"
-                )
+                order_number=position[0],
+                symbol=position[16],
+                volume=position[9],
+                order_type=order_type,
+                price=position[13],
+                comment="TestTrade"
+            )
             assert outcome == True
 
 
@@ -388,14 +388,13 @@ def test_fractional_close():
                 symbol=position[16],
                 volume=position[9],
                 order_type="SELL",
-                price=position[13]-100,
+                price=position[13] - 100,
                 comment="ComplexTestOrderSell"
             )
-            assert sell_order == True
+            assert sell_order
 
 
-
-### Helper functions
+# Helper functions
 def get_a_test_order():
     # Get the current BTCUSD.a price, Assume balance is not more than $100,000
     current_price = mt5_interaction.retrieve_latest_tick("BTCUSD.a")['ask']
@@ -415,4 +414,3 @@ def get_a_test_order():
         "correct_volume": 0.1
     }
     return return_object
-

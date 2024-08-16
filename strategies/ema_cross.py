@@ -1,7 +1,7 @@
-'''
+"""
 Assumptions:
 1. All strategy is performed on an existing dataframe. Previous inputs define how dataframe is retrieved/created
-'''
+"""
 from indicator_lib import ema_cross
 import display_lib
 from backtest_lib import backtest_analysis
@@ -74,29 +74,21 @@ def ema_cross_strategy(dataframe, risk_ratio=1, backtest=True, display=True, upl
         return trade_dataframe
     else:
         last_event = order_dataframe.tail(1)
-        if last_event['valid'] == True:
+        if last_event['valid']:
             return last_event
         return False
 
 
 # Determine order type and values
 def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=True):
-    """
-
-    :param dataframe:
-    :param risk_amount:
-    :param backtest:
-    :return:
-    """
     # Set up Pip movement
     # Determine direction
-    dataframe['direction'] = dataframe[ema_one] > dataframe[ema_one].shift(1) # I.e. trending up
-    # Add in stop loss
+    dataframe['direction'] = dataframe[ema_one] > dataframe[ema_one].shift(1)  # I.e. trending up
     dataframe['stop_loss'] = dataframe[ema_two]
     cross_events = dataframe
     # Calculate stop loss
     for index, row in cross_events.iterrows():
-        if row['direction'] == True:
+        if row['direction']:
             # Order type will be a BUY_STOP
             cross_events.loc[index, 'order_type'] = "BUY_STOP"
             # Calculate the distance between the low and the stop loss
@@ -111,7 +103,6 @@ def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=
             # Set the entry price as 10 pips above the high
             stop_price = row['high'] + 10 * pip_size
             cross_events.loc[index, 'stop_price'] = stop_price
-
         else:
             # Order type will be a SELL STOP
             cross_events.loc[index, 'order_type'] = "SELL_STOP"
@@ -128,7 +119,7 @@ def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=
             cross_events.loc[index, 'stop_price'] = stop_price
 
     for index, row in cross_events.iterrows():
-        if row['crossover'] == True:
+        if row['crossover']:
             if row['order_type'] == "BUY_STOP":
                 if row['take_profit'] > row['stop_price'] > row['stop_loss']:
                     valid = True
@@ -141,4 +132,3 @@ def determine_order(dataframe, ema_one, ema_two, pip_size, risk_ratio, backtest=
                 cross_events.loc[index, 'valid'] = False
 
     return cross_events
-
