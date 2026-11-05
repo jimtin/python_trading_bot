@@ -23,7 +23,7 @@ def get_candlestick_data(symbol, timeframe):
     # Construct the headers
     headers = {"accept": "application/json"}
     # Query the API
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=30)
     # Retrieve the data
     candlestick_raw_data = response.json()
     # Initialize an empty array
